@@ -57,5 +57,6 @@ A normal video provides changing 2D projections, not a clean 3D mesh, skeleton, 
 ## Owner reference received 2026-10-09
 
 - A 13.8-second warehouse video provides clear full-body front and back views, a walking approach, black shirt, denim shorts, black shoes, and a black high-visibility utility vest with fluorescent reflective trim.
+- A private clothing photo adds two distinct vest references: a neon-yellow zippered mesh safety vest with horizontal reflective bands and utility pockets, and a red courier utility vest with broader reflective panels and a heavier pocketed silhouette. Use fictionalized, unbranded versions as visible customization options.
 - This materially improves body proportion, clothing, vest, and gait reference.
 - It still does not replace the clean mesh, skeleton, skin weights, or animation clips required for gameplay.
