@@ -1,7 +1,8 @@
 class_name PackagePeddlerPlayer
 extends CharacterBody3D
 
-signal interaction_requested
+signal interaction_requested(target: Node3D)
+signal interaction_target_changed(target: Node3D)
 
 @export var walk_speed := 4.2
 @export var sprint_speed := 7.0
@@ -10,6 +11,7 @@ signal interaction_requested
 @export var turn_speed := 12.0
 @export var mouse_sensitivity := 0.0025
 @export var stick_look_speed := 2.2
+@export var interaction_distance := 2.75
 
 var gravity := 18.0
 var camera_yaw := 0.0
@@ -25,6 +27,7 @@ var right_leg: MeshInstance3D
 var camera_pivot: Node3D
 var spring_arm: SpringArm3D
 var camera: Camera3D
+var current_interaction_target: Node3D
 
 func _ready() -> void:
 	gravity = float(ProjectSettings.get_setting("physics/3d/default_gravity", 18.0))
@@ -115,12 +118,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		_apply_camera_rotation()
 	elif event is InputEventMouseButton and event.pressed:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-	elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
-		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 func _physics_process(delta: float) -> void:
 	_update_gamepad_look(delta)
 	_update_camera_mode()
+	_update_interaction_target()
 	_update_interaction()
 	_update_movement(delta)
 	_update_gait(delta)
@@ -143,8 +145,23 @@ func _update_camera_mode() -> void:
 		visual_root.visible = not first_person
 
 func _update_interaction() -> void:
-	if Input.is_action_just_pressed("interact"):
-		interaction_requested.emit()
+	if Input.is_action_just_pressed("interact") and is_instance_valid(current_interaction_target):
+		interaction_requested.emit(current_interaction_target)
+
+func _update_interaction_target() -> void:
+	var nearest: Node3D
+	var nearest_distance := interaction_distance
+	for candidate in get_tree().get_nodes_in_group("interactable"):
+		if candidate is not Node3D:
+			continue
+		var candidate_3d := candidate as Node3D
+		var distance := global_position.distance_to(candidate_3d.global_position)
+		if distance <= nearest_distance:
+			nearest = candidate_3d
+			nearest_distance = distance
+	if nearest != current_interaction_target:
+		current_interaction_target = nearest
+		interaction_target_changed.emit(current_interaction_target)
 
 func _update_movement(delta: float) -> void:
 	var input_2d := Input.get_vector("move_left", "move_right", "move_forward", "move_back")

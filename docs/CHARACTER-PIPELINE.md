@@ -3,7 +3,7 @@
 ## Selected pipeline
 
 1. Use private still frames extracted from the owner's videos as likeness, clothing, and body-reference material only.
-2. Build the human base with MakeHuman bundled assets.
+2. Build the human base through the maintained MPFB (MakeHuman Plugin for Blender) workflow using bundled MakeHuman assets.
 3. Use Mixamo's humanoid auto-rigger and royalty-free game animations.
 4. Use Blender to clean the mesh, retarget and combine animations, reduce textures/geometry, and export GLB.
 5. Use Godot AnimationTree for idle/walk/run/turn/lift/carry blending and add foot/hand IK where interactions require it.
@@ -15,6 +15,7 @@ A normal video provides changing 2D projections, not a clean 3D mesh, skeleton, 
 ## License evidence
 
 - MakeHuman's official repository states that bundled graphical assets are CC0 and that exported output is the user's data with no MakeHuman limitation. Third-party MakeHuman repository assets remain excluded unless separately reviewed: <https://github.com/makehumancommunity/makehuman/blob/master/LICENSE.md>
+- MPFB is the maintained Blender-integrated MakeHuman workflow and is distributed by the MakeHuman community: <https://github.com/makehumancommunity/mpfb2>
 - Adobe's official Mixamo FAQ states that Mixamo is free with an Adobe ID and its characters and animations may be used royalty-free in personal, commercial, and nonprofit video games: <https://helpx.adobe.com/creative-cloud/faq/mixamo-faq.html>
 
 ## Privacy and distribution

@@ -3,8 +3,12 @@ extends Node3D
 const PlayerController = preload("res://src/player_controller.gd")
 
 var status_label: Label
+var interaction_label: Label
+var pause_label: Label
+var player: PackagePeddlerPlayer
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	_build_lighting()
 	_build_graybox_neighborhood()
 	_build_player()
@@ -34,9 +38,19 @@ func _build_graybox_neighborhood() -> void:
 	_add_static_box("Warehouse", Vector3(13.0, 3.0, -15.0), Vector3(18.0, 6.0, 10.0), Color("87939c"))
 	_add_static_box("LoadingDock", Vector3(13.0, 0.45, -8.8), Vector3(12.0, 0.9, 2.0), Color("4d555b"))
 	_add_static_box("ParkedVehicle", Vector3(-5.0, 0.65, -2.0), Vector3(2.1, 1.3, 4.5), Color("254e70"))
+	_add_interaction_point("VehicleDoor", Vector3(-6.4, 1.0, -2.0), "enter the parked vehicle")
+	_add_interaction_point("WarehouseEntrance", Vector3(13.0, 1.0, -8.0), "enter the warehouse")
 
 	for x in range(-2, 3):
 		_add_static_box("TrafficBarrier_%s" % x, Vector3(float(x) * 3.0, 0.5, 8.0), Vector3(1.4, 1.0, 1.4), Color("d78935"))
+
+func _add_interaction_point(point_name: String, position_value: Vector3, action_text: String) -> void:
+	var point := Marker3D.new()
+	point.name = point_name
+	point.position = position_value
+	point.set_meta("interaction_text", action_text)
+	point.add_to_group("interactable")
+	add_child(point)
 
 func _add_static_box(label: String, position_value: Vector3, size: Vector3, color: Color) -> void:
 	var body := StaticBody3D.new()
@@ -60,11 +74,12 @@ func _add_static_box(label: String, position_value: Vector3, size: Vector3, colo
 	add_child(body)
 
 func _build_player() -> void:
-	var player := PlayerController.new()
+	player = PlayerController.new()
 	player.name = "CourierPlayer"
 	player.position = Vector3(-11.0, 1.0, -1.0)
 	add_child(player)
 	player.interaction_requested.connect(_on_interaction_requested)
+	player.interaction_target_changed.connect(_on_interaction_target_changed)
 
 func _build_hud() -> void:
 	var layer := CanvasLayer.new()
@@ -84,13 +99,40 @@ func _build_hud() -> void:
 
 	status_label = Label.new()
 	status_label.position = Vector2(34.0, 62.0)
-	status_label.text = "WASD / left stick: move   Shift: sprint   Mouse / right stick: camera\nV / Y: camera view   E / A: interact   Esc: release mouse"
+	status_label.text = "WASD / left stick: move   Shift: sprint   Mouse / right stick: camera\nV / Y: camera view   E / A: interact   Esc / Menu: pause"
 	status_label.add_theme_font_size_override("font_size", 15)
 	layer.add_child(status_label)
 
-func _on_interaction_requested() -> void:
-	status_label.text = "Interaction input received. Warehouse, vehicle and package actions are next."
-	get_tree().create_timer(2.2).timeout.connect(func() -> void:
-		status_label.text = "WASD / left stick: move   Shift: sprint   Mouse / right stick: camera\nV / Y: camera view   E / A: interact   Esc: release mouse"
-	)
+	interaction_label = Label.new()
+	interaction_label.position = Vector2(34.0, 132.0)
+	interaction_label.add_theme_font_size_override("font_size", 18)
+	layer.add_child(interaction_label)
 
+	pause_label = Label.new()
+	pause_label.position = Vector2(34.0, 174.0)
+	pause_label.text = "PAUSED\nPress Esc / Menu to resume"
+	pause_label.add_theme_font_size_override("font_size", 28)
+	pause_label.visible = false
+	layer.add_child(pause_label)
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("pause") and not event.is_echo():
+		_toggle_pause()
+		get_viewport().set_input_as_handled()
+
+func _toggle_pause() -> void:
+	get_tree().paused = not get_tree().paused
+	pause_label.visible = get_tree().paused
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if get_tree().paused else Input.MOUSE_MODE_CAPTURED
+
+func _on_interaction_target_changed(target: Node3D) -> void:
+	if is_instance_valid(target):
+		interaction_label.text = "Press E / A to %s" % String(target.get_meta("interaction_text", "interact"))
+	else:
+		interaction_label.text = ""
+
+func _on_interaction_requested(target: Node3D) -> void:
+	status_label.text = "Context interaction accepted: %s" % String(target.get_meta("interaction_text", "interact"))
+	get_tree().create_timer(2.2).timeout.connect(func() -> void:
+		status_label.text = "WASD / left stick: move   Shift: sprint   Mouse / right stick: camera\nV / Y: camera view   E / A: interact   Esc / Menu: pause"
+	)

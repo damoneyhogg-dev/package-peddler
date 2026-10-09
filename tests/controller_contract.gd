@@ -30,6 +30,18 @@ func _run() -> void:
 	_expect(player.camera.current, "Gameplay camera is not current")
 	_expect(is_equal_approx(player.spring_arm.spring_length, 4.8), "Third-person camera distance is incorrect")
 
+	var interaction_point := Marker3D.new()
+	interaction_point.name = "TestInteractionPoint"
+	interaction_point.position = Vector3(0.0, 0.0, 2.0)
+	interaction_point.add_to_group("interactable")
+	root.add_child(interaction_point)
+	player._update_interaction_target()
+	_expect(player.current_interaction_target == interaction_point, "Nearby contextual interaction target was not selected")
+	player.position = Vector3(10.0, 0.0, 0.0)
+	player._update_interaction_target()
+	_expect(player.current_interaction_target == null, "Out-of-range interaction target remained selected")
+	player.position = Vector3.ZERO
+
 	Input.action_press("move_forward", 0.5)
 	for frame in range(12):
 		player._physics_process(1.0 / 60.0)
@@ -56,8 +68,23 @@ func _run() -> void:
 	var diagonal_speed := Vector2(player.velocity.x, player.velocity.z).length()
 	_expect(diagonal_speed <= player.walk_speed + 0.05, "Diagonal movement exceeded configured walk speed")
 
+	for frame in range(30):
+		player._physics_process(1.0 / 60.0)
+	var stopped_speed := Vector2(player.velocity.x, player.velocity.z).length()
+	_expect(stopped_speed < 0.05, "Released movement input did not brake to rest")
+
+	player.velocity = Vector3.ZERO
+	Input.action_press("move_forward")
+	Input.action_press("sprint")
+	for frame in range(40):
+		player._physics_process(1.0 / 60.0)
+	Input.action_release("move_forward")
+	Input.action_release("sprint")
+	var measured_sprint_speed := Vector2(player.velocity.x, player.velocity.z).length()
+	_expect(measured_sprint_speed > player.walk_speed and measured_sprint_speed <= player.sprint_speed + 0.05, "Sprint did not reach its configured speed band")
+
 	if failures.is_empty():
-		print("CONTROLLER_CONTRACT_PASS actions=%d partial=%.3f planar=%.3f diagonal=%.3f" % [required_actions.size(), partial_speed, planar_speed, diagonal_speed])
+		print("CONTROLLER_CONTRACT_PASS actions=%d partial=%.3f planar=%.3f diagonal=%.3f stopped=%.3f sprint=%.3f" % [required_actions.size(), partial_speed, planar_speed, diagonal_speed, stopped_speed, measured_sprint_speed])
 		quit(0)
 	else:
 		for failure in failures:
