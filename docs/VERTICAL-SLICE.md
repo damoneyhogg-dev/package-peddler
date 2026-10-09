@@ -32,3 +32,11 @@ No static page, menu-only simulation, teleport-only route, or noninteractive cin
 - Character appearance screen with skin tone, clothing colors, vest colors, and multiple vest styles.
 - One optional contested-delivery encounter with de-escalation, race, and non-lethal fight outcomes.
 - The combat extension starts only after the ordinary five-delivery loop is playable and regression-tested.
+
+## Environment reference backlog
+
+- Add a fictional neighborhood community pool and clubhouse as a recognizable landmark and possible delivery stop.
+- Connect the pool area to a developing suburban junction with overhead utilities, unfinished roadside grading, new-home construction, sidewalks, lawns, and mixed residential traffic.
+- Include a fictional town-limit transition where a rural road becomes a lower-speed municipal delivery zone, communicated with readable roadside signage.
+- Use the private minivan reference for believable sliding-door access, rear cargo loading, mixed package sizes, and driveway parking scale.
+- Use owner-supplied photos only as private layout and atmosphere references. Replace all real street names, builder branding, phone numbers, addresses, and other identifying details with fictional content.
