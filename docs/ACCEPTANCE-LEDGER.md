@@ -38,6 +38,7 @@
 - Five distinct locations are reachable by driving and walking.
 - Correct package, address, placement, scan, and confirmation are required.
 - At least one oversized-package stop requires an appropriate heavy-carry or dolly interaction and rejects placement that blocks an outward-opening door, walkway, or resident access.
+- An unsafe-animal complication supports staying in or returning to the vehicle, contacting the fictional customer, waiting for the animal to be secured, or marking the stop undeliverable; the player cannot confront or harm the animal.
 - Stops cannot pay twice.
 - Undeliverable status creates a return obligation.
 
