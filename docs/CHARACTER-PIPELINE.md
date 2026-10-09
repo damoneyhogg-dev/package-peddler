@@ -31,3 +31,8 @@ A normal video provides changing 2D projections, not a clean 3D mesh, skeleton, 
 - Full body standing from front, side, and back in ordinary fitted clothing.
 - Short neutral walk filmed from the side and front for motion reference.
 
+## Owner reference received 2026-10-09
+
+- A 13.8-second warehouse video provides clear full-body front and back views, a walking approach, black shirt, denim shorts, black shoes, and a black high-visibility utility vest with fluorescent reflective trim.
+- This materially improves body proportion, clothing, vest, and gait reference.
+- It still does not replace the clean mesh, skeleton, skin weights, or animation clips required for gameplay.

@@ -154,7 +154,9 @@ func _update_movement(delta: float) -> void:
 	camera_right.y = 0.0
 	camera_forward = camera_forward.normalized()
 	camera_right = camera_right.normalized()
-	var direction := (camera_right * input_2d.x + camera_forward * -input_2d.y).normalized()
+	var direction := camera_right * input_2d.x + camera_forward * -input_2d.y
+	if direction.length() > 1.0:
+		direction = direction.normalized()
 	var target_speed := sprint_speed if Input.is_action_pressed("sprint") else walk_speed
 	var target_velocity := direction * target_speed
 	var rate := acceleration if direction.length_squared() > 0.0 else braking
@@ -170,6 +172,12 @@ func _update_movement(delta: float) -> void:
 		visual_root.rotation.y = lerp_angle(visual_root.rotation.y, desired_yaw, 1.0 - exp(-turn_speed * delta))
 
 	move_and_slide()
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		velocity.x = 0.0
+		velocity.z = 0.0
 
 func _update_gait(delta: float) -> void:
 	var planar_speed := Vector2(velocity.x, velocity.z).length()

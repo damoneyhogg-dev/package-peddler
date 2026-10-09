@@ -27,3 +27,8 @@ No static page, menu-only simulation, teleport-only route, or noninteractive cin
 4. Warehouse, route selection, scanning, and loading.
 5. Five-stop delivery loop, GPS, earnings, and persistence.
 
+## Extensions after the core loop passes
+
+- Character appearance screen with skin tone, clothing colors, vest colors, and multiple vest styles.
+- One optional contested-delivery encounter with de-escalation, race, and non-lethal fight outcomes.
+- The combat extension starts only after the ordinary five-delivery loop is playable and regression-tested.

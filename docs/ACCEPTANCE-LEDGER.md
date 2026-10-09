@@ -10,6 +10,14 @@
 - First-person and third-person views preserve control orientation.
 - Final slice uses a licensed realistic human, blended idle/walk/run/lift/carry/enter/exit animations, and foot/hand IK where needed.
 
+## Character customization
+
+- Player can select among at least six skin tones.
+- Shirt, pants, and high-visibility vest colors are independently selectable.
+- At least three visibly different vest styles are available.
+- Appearance persists through save/reload and is visible in third-person and cinematics.
+- Color choices do not alter hitboxes, movement speed, delivery payout, or combat advantage.
+
 ## Vehicle
 
 - Proximity and door-side entry gate.
@@ -39,3 +47,12 @@
 - Save/reload restores player, vehicle, route, packages, stops, expenses, and earnings.
 - Missing or corrupt save data fails safely to a new profile.
 
+## Contested-delivery encounters (post-core extension)
+
+- Encounters occur only at explicitly flagged fictional delivery stops and only against another courier NPC.
+- Player can de-escalate, leave, or choose a non-lethal hand-to-hand fight.
+- Combat supports stamina, light/heavy strikes, block, dodge, hit reaction, knockdown, recovery, and a clear stop condition.
+- No weapons, gore, attacks on customers, or attacks on uninvolved pedestrians.
+- Fighting has believable time, reputation, injury, route, and earnings consequences; it is never a free reward.
+- The same encounter cannot grant repeated delivery credit or repeated payout.
+- Combat can be disabled in accessibility/gameplay settings, with a non-combat resolution path preserved.

@@ -30,6 +30,14 @@ func _run() -> void:
 	_expect(player.camera.current, "Gameplay camera is not current")
 	_expect(is_equal_approx(player.spring_arm.spring_length, 4.8), "Third-person camera distance is incorrect")
 
+	Input.action_press("move_forward", 0.5)
+	for frame in range(12):
+		player._physics_process(1.0 / 60.0)
+	Input.action_release("move_forward")
+	var partial_speed := Vector2(player.velocity.x, player.velocity.z).length()
+	_expect(partial_speed > 1.0 and partial_speed <= player.walk_speed * 0.55, "Partial analog input did not preserve stick magnitude")
+
+	player.velocity = Vector3.ZERO
 	Input.action_press("move_forward")
 	for frame in range(12):
 		player._physics_process(1.0 / 60.0)
@@ -38,8 +46,18 @@ func _run() -> void:
 	_expect(planar_speed > 0.5, "Forward input did not accelerate the player")
 	_expect(planar_speed <= player.walk_speed + 0.05, "Walk acceleration exceeded configured walk speed")
 
+	player.velocity = Vector3.ZERO
+	Input.action_press("move_forward")
+	Input.action_press("move_right")
+	for frame in range(30):
+		player._physics_process(1.0 / 60.0)
+	Input.action_release("move_forward")
+	Input.action_release("move_right")
+	var diagonal_speed := Vector2(player.velocity.x, player.velocity.z).length()
+	_expect(diagonal_speed <= player.walk_speed + 0.05, "Diagonal movement exceeded configured walk speed")
+
 	if failures.is_empty():
-		print("CONTROLLER_CONTRACT_PASS actions=%d planar_speed=%.3f" % [required_actions.size(), planar_speed])
+		print("CONTROLLER_CONTRACT_PASS actions=%d partial=%.3f planar=%.3f diagonal=%.3f" % [required_actions.size(), partial_speed, planar_speed, diagonal_speed])
 		quit(0)
 	else:
 		for failure in failures:
