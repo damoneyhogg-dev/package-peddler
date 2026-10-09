@@ -3,8 +3,8 @@
 ## Selected pipeline
 
 1. Use private still frames extracted from the owner's videos as likeness, clothing, and body-reference material only.
-2. Build the human base with MPFB 2.0.17 (MakeHuman Plugin for Blender) using bundled MakeHuman assets. Standalone MakeHuman 1.3.0 is the fallback if MPFB is incompatible with the installed Blender version.
-3. Use Mixamo's humanoid auto-rigger and royalty-free game animations.
+2. Build the human base with the installed and verified MPFB 2.0.17 (MakeHuman Plugin for Blender) using bundled MakeHuman assets. Standalone MakeHuman 1.3.0 is the fallback if MPFB becomes incompatible with Blender.
+3. For the strict open-source path, rig in Blender with native armatures/Rigify where appropriate and use self-authored or separately verified CC0 animation data. Mixamo remains an optional proprietary exception only if the owner later approves it.
 4. Use Blender to clean the mesh, retarget and combine animations, reduce textures/geometry, and export GLB.
 5. Use Godot AnimationTree for idle/walk/run/turn/lift/carry blending and add foot/hand IK where interactions require it.
 
@@ -15,21 +15,20 @@ A normal video provides changing 2D projections, not a clean 3D mesh, skeleton, 
 ## License evidence
 
 - MakeHuman's official repository states that bundled graphical assets are CC0 and that exported output is the user's data with no MakeHuman limitation. Third-party MakeHuman repository assets remain excluded unless separately reviewed: <https://github.com/makehumancommunity/makehuman/blob/master/LICENSE.md>
-- MPFB is the maintained Blender-integrated MakeHuman workflow and is distributed by the MakeHuman community: <https://github.com/makehumancommunity/mpfb2>
+- MPFB is the maintained Blender-integrated MakeHuman workflow and is distributed by the MakeHuman community under GPL-3.0-or-later; its bundled MakeHuman assets are CC0: <https://github.com/makehumancommunity/mpfb2>
 - Official MPFB installation page: <https://extensions.blender.org/add-ons/mpfb/>
 - Adobe's official Mixamo FAQ states that Mixamo is free with an Adobe ID and its characters and animations may be used royalty-free in personal, commercial, and nonprofit video games: <https://helpx.adobe.com/creative-cloud/faq/mixamo-faq.html>
 - Godot recommends glTF 2.0 / GLB for imported 3D scenes: <https://docs.godotengine.org/en/stable/tutorials/assets_pipeline/importing_3d_scenes/available_formats.html>
 
 ## Acquisition and export checklist
 
-1. Install MPFB from Blender's official Extensions page.
+1. MPFB 2.0.17 is installed from Blender's official Extensions release and verified with SHA-256 `4f0a879d64a39bf646fbf5f53601ac678855da329d650617dca5737548239a87`.
 2. Create the courier in a neutral T-pose using only core CC0 assets.
-3. Export a clean FBX with textures for Mixamo auto-rigging.
-4. Sign into Mixamo with an Adobe ID.
-5. Download one base FBX with skin, then animation clips without skin.
-6. Acquire idle, walk, run, backward, strafe, starts, stops, 90/180-degree turns, bend, lift, carry, set-down, door interaction, scanning/phone use, vehicle entry, seated driving, and vehicle exit.
-7. Clean, retarget, and combine the clips in Blender.
-8. Export the optimized character and animations as GLB for Godot.
+3. Build and test the humanoid rig in Blender; use Rigify only where its generated rig fits the production skeleton and export requirements.
+4. Author or acquire separately verified CC0 clips for idle, walk, run, backward, strafe, starts, stops, 90/180-degree turns, bend, lift, carry, set-down, door interaction, scanning/phone use, vehicle entry, seated driving, and vehicle exit.
+5. If the open-source animation route cannot meet the milestone, record Mixamo as an explicit proprietary exception before downloading anything.
+6. Clean, retarget, and combine the clips in Blender.
+7. Export the optimized character and animations as GLB for Godot.
 
 ## Intel UHD 620 performance budget
 
