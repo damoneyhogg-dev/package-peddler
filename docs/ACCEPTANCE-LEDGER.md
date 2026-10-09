@@ -24,6 +24,7 @@
 - Natural enter/exit transition without teleport visible to the player.
 - Analog steering, throttle, and braking.
 - Vehicle cannot be controlled while on foot.
+- A fictional gas station supports parking at a pump, exiting, purchasing a selected fuel amount, enforcing tank capacity, and recording the expense exactly once.
 - Fuel, damage, maintenance, and cargo capacity affect route economics.
 
 ## Warehouse and packages
