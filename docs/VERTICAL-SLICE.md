@@ -36,7 +36,7 @@ No static page, menu-only simulation, teleport-only route, or noninteractive cin
 ## Environment reference backlog
 
 - Add a fictional neighborhood community pool and clubhouse as a recognizable landmark and possible delivery stop.
-- Connect the pool area to a developing suburban junction with overhead utilities, unfinished roadside grading, new-home construction, sidewalks, lawns, and mixed residential traffic.
+- Connect the pool area to a developing suburban junction with overhead utilities, roadside utility boxes, unfinished grading and pavement, active earthmoving equipment and dust, new-home construction beside occupied homes, sidewalks, lawns, and mixed residential traffic.
 - Include a fictional town-limit transition where a rural road becomes a lower-speed municipal delivery zone, communicated with readable roadside signage.
 - Use the private minivan reference for believable sliding-door access, rear cargo loading, mixed package sizes, and driveway parking scale.
 - Add a fictional resident-only pond/open-space landmark with restricted access, rough terrain, and a nearby hydrant; use it for a navigation complication that requires finding a lawful street or clubhouse approach rather than trespassing.
