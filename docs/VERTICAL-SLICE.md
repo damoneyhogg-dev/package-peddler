@@ -42,4 +42,5 @@ No static page, menu-only simulation, teleport-only route, or noninteractive cin
 - Include a fictional town-limit transition where a rural road becomes a lower-speed municipal delivery zone, communicated with readable roadside signage.
 - Use the private minivan reference for believable sliding-door access, rear cargo loading, mixed package sizes, and driveway parking scale.
 - Add a fictional resident-only pond/open-space landmark with restricted access, rough terrain, and a nearby hydrant; use it for a navigation complication that requires finding a lawful street or clubhouse approach rather than trespassing.
+- Populate the apartment clubhouse and community-pool area with original unbranded maintenance/security golf carts as slow ambient traffic and occasional curb-access obstacles.
 - Use owner-supplied photos only as private layout and atmosphere references. Replace all real street names, builder branding, phone numbers, addresses, and other identifying details with fictional content.
