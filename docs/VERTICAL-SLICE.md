@@ -7,7 +7,7 @@ The slice is complete only when one continuous saved game can:
 3. Enter and drive the vehicle.
 4. Travel to a warehouse.
 5. Park, exit, and enter the warehouse.
-6. Compare and accept one route.
+6. Compare, sequence, and accept one route, with both an optimized suggestion and manual stop ordering.
 7. Scan and load its packages.
 8. Drive to five fictional delivery locations.
 9. Retrieve the correct package at each stop.
@@ -26,6 +26,8 @@ No static page, menu-only simulation, teleport-only route, or noninteractive cin
 3. Vehicle entry, exit, and driving.
 4. Warehouse, route selection, scanning, and loading.
 5. Five-stop delivery loop, GPS, earnings, and persistence.
+
+The route-selection milestone includes a readable stop list, distance/time estimates, manual reordering, an optimized suggestion, and recalculation that preserves every accepted stop. The owner-supplied route-optimization reel is private behavior reference only and is not packaged with the game.
 
 ## Extensions after the core loop passes
 

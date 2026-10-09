@@ -35,6 +35,13 @@
 - Capacity and package placement are enforced.
 - Duplicate scans and wrong-package scans are rejected.
 
+## Route planning
+
+- The route screen shows every accepted stop, its sequence, and estimated route distance/time before departure.
+- The player can accept an optimized order or manually reorder stops; either choice updates GPS guidance without changing package ownership or creating duplicate delivery credit.
+- The planner calls out obvious backtracking, such as driving past a nearby pending stop and returning later, while still allowing the player's chosen order.
+- Recalculation is deterministic for the same route state and never silently drops a stop.
+
 ## Deliveries
 
 - Five distinct locations are reachable by driving and walking.
