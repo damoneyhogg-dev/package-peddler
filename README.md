@@ -31,3 +31,12 @@ Open `project.godot` in Godot 4.7.2 and run the project.
 
 See `docs/ENGINE-DECISION.md`, `docs/VERTICAL-SLICE.md`, and `docs/ACCEPTANCE-LEDGER.md`.
 
+## Automated controller check
+
+Run:
+
+```powershell
+..\tools\godot\4.7.2\Godot_v4.7.2-stable_win64_console.exe --headless --path . --script res://tests/controller_contract.gd
+```
+
+The test verifies required input actions, the character collider, the camera collision arm, an active camera, and movement acceleration.

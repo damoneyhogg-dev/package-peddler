@@ -35,6 +35,7 @@ func _ready() -> void:
 
 func _build_collision() -> void:
 	var collision := CollisionShape3D.new()
+	collision.name = "PlayerCollision"
 	var capsule := CapsuleShape3D.new()
 	capsule.radius = 0.36
 	capsule.height = 1.75
@@ -186,4 +187,3 @@ func _update_gait(delta: float) -> void:
 		left_leg.rotation.x = move_toward(left_leg.rotation.x, 0.0, delta * 5.0)
 		right_leg.rotation.x = move_toward(right_leg.rotation.x, 0.0, delta * 5.0)
 		visual_root.position.y = move_toward(visual_root.position.y, 0.0, delta * 0.2)
-
