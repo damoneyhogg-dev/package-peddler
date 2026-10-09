@@ -37,6 +37,7 @@
 
 - Five distinct locations are reachable by driving and walking.
 - Correct package, address, placement, scan, and confirmation are required.
+- At least one oversized-package stop requires an appropriate heavy-carry or dolly interaction and rejects placement that blocks an outward-opening door, walkway, or resident access.
 - Stops cannot pay twice.
 - Undeliverable status creates a return obligation.
 
