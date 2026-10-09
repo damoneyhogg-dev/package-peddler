@@ -31,6 +31,7 @@ No static page, menu-only simulation, teleport-only route, or noninteractive cin
 
 - Character appearance screen with skin tone, clothing colors, vest colors, and multiple vest styles.
 - Add a fictional high-floor step van/package truck using private footage only for exterior scale, wheelbase, cab height, side-door placement, turning clearance, and neighborhood road presence; replace all real branding and plates.
+- Add an original unbranded sports car as an optional prestige purchase and ambient vehicle; balance its speed against minimal cargo capacity and higher operating costs so it is a poor courier-profitability choice rather than an automatic upgrade.
 - One optional contested-delivery encounter with de-escalation, race, and non-lethal fight outcomes.
 - The combat extension starts only after the ordinary five-delivery loop is playable and regression-tested.
 
