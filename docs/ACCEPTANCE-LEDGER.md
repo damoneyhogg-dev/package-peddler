@@ -25,6 +25,7 @@
 - Analog steering, throttle, and braking.
 - Vehicle cannot be controlled while on foot.
 - A fictional gas station supports parking at a pump, exiting, purchasing a selected fuel amount, enforcing tank capacity, and recording the expense exactly once.
+- A fictional vehicle-service center supports confirmed oil, tire, inspection, and optional wash services with explicit cost and elapsed time; completed service state persists and cannot be charged twice.
 - Fuel, damage, maintenance, and cargo capacity affect route economics.
 
 ## Warehouse and packages

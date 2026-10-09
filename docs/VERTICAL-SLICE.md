@@ -43,4 +43,5 @@ No static page, menu-only simulation, teleport-only route, or noninteractive cin
 - Use the private minivan reference for believable sliding-door access, rear cargo loading, mixed package sizes, and driveway parking scale.
 - Add a fictional resident-only pond/open-space landmark with restricted access, rough terrain, and a nearby hydrant; use it for a navigation complication that requires finding a lawful street or clubhouse approach rather than trespassing.
 - Populate the apartment clubhouse and community-pool area with original unbranded maintenance/security golf carts as slow ambient traffic and occasional curb-access obstacles.
+- Add a fictional grocery/retail commercial stop with a customer-service counter, carts, mobility-scooter accessibility, checkout lanes, wide aisles, and a bakery area; replace all real products, signs, prices, staff, and store branding.
 - Use owner-supplied photos only as private layout and atmosphere references. Replace all real street names, builder branding, phone numbers, addresses, and other identifying details with fictional content.
