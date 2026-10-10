@@ -12,6 +12,7 @@ signal interaction_target_changed(target: Node3D)
 @export var mouse_sensitivity := 0.0025
 @export var stick_look_speed := 2.2
 @export var interaction_distance := 2.75
+@export var fall_recovery_height := -5.0
 
 var gravity := 18.0
 var camera_yaw := 0.0
@@ -28,8 +29,10 @@ var camera_pivot: Node3D
 var spring_arm: SpringArm3D
 var camera: Camera3D
 var current_interaction_target: Node3D
+var recovery_position := Vector3.ZERO
 
 func _ready() -> void:
+	recovery_position = global_position
 	gravity = float(ProjectSettings.get_setting("physics/3d/default_gravity", 18.0))
 	_build_collision()
 	_build_provisional_human()
@@ -189,6 +192,13 @@ func _update_movement(delta: float) -> void:
 		visual_root.rotation.y = lerp_angle(visual_root.rotation.y, desired_yaw, 1.0 - exp(-turn_speed * delta))
 
 	move_and_slide()
+	_recover_if_out_of_bounds()
+
+func _recover_if_out_of_bounds() -> void:
+	if global_position.y >= fall_recovery_height:
+		return
+	global_position = recovery_position
+	velocity = Vector3.ZERO
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:

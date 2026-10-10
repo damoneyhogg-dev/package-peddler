@@ -34,6 +34,7 @@ func _build_lighting() -> void:
 
 func _build_graybox_neighborhood() -> void:
 	_add_static_box("Ground", Vector3(0.0, -0.25, 0.0), Vector3(70.0, 0.5, 70.0), Color("65735a"))
+	_add_world_boundaries()
 	_add_static_box("Home", Vector3(-11.0, 2.0, -8.0), Vector3(8.0, 4.0, 7.0), Color("c8b49a"))
 	_add_static_box("Warehouse", Vector3(13.0, 3.0, -15.0), Vector3(18.0, 6.0, 10.0), Color("87939c"))
 	_add_static_box("LoadingDock", Vector3(13.0, 0.45, -8.8), Vector3(12.0, 0.9, 2.0), Color("4d555b"))
@@ -43,6 +44,13 @@ func _build_graybox_neighborhood() -> void:
 
 	for x in range(-2, 3):
 		_add_static_box("TrafficBarrier_%s" % x, Vector3(float(x) * 3.0, 0.5, 8.0), Vector3(1.4, 1.0, 1.4), Color("d78935"))
+
+func _add_world_boundaries() -> void:
+	var boundary_color := Color("44503f")
+	_add_static_box("WorldBoundaryNorth", Vector3(0.0, 0.75, -34.5), Vector3(70.0, 2.0, 1.0), boundary_color)
+	_add_static_box("WorldBoundarySouth", Vector3(0.0, 0.75, 34.5), Vector3(70.0, 2.0, 1.0), boundary_color)
+	_add_static_box("WorldBoundaryWest", Vector3(-34.5, 0.75, 0.0), Vector3(1.0, 2.0, 70.0), boundary_color)
+	_add_static_box("WorldBoundaryEast", Vector3(34.5, 0.75, 0.0), Vector3(1.0, 2.0, 70.0), boundary_color)
 
 func _add_interaction_point(point_name: String, position_value: Vector3, action_text: String) -> void:
 	var point := Marker3D.new()

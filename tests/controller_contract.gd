@@ -23,6 +23,8 @@ func _run() -> void:
 	var player := PlayerController.new()
 	root.add_child(player)
 	await process_frame
+	var configured_fall_recovery_height := player.fall_recovery_height
+	player.fall_recovery_height = -1000.0
 
 	_expect(player.get_node_or_null("PlayerCollision") is CollisionShape3D, "Player collider was not created")
 	_expect(player.get_node_or_null("CameraPivot/CameraCollisionArm") is SpringArm3D, "SpringArm3D camera collision was not created")
@@ -66,6 +68,7 @@ func _run() -> void:
 	Input.action_release("move_forward")
 	Input.action_release("move_right")
 	var diagonal_speed := Vector2(player.velocity.x, player.velocity.z).length()
+	_expect(diagonal_speed > 0.5, "Diagonal input did not move the player")
 	_expect(diagonal_speed <= player.walk_speed + 0.05, "Diagonal movement exceeded configured walk speed")
 
 	for frame in range(30):
@@ -83,8 +86,15 @@ func _run() -> void:
 	var measured_sprint_speed := Vector2(player.velocity.x, player.velocity.z).length()
 	_expect(measured_sprint_speed > player.walk_speed and measured_sprint_speed <= player.sprint_speed + 0.05, "Sprint did not reach its configured speed band")
 
+	player.fall_recovery_height = configured_fall_recovery_height
+	player.global_position = Vector3(4.0, player.fall_recovery_height - 1.0, 4.0)
+	player.velocity = Vector3(2.0, -8.0, 2.0)
+	player._recover_if_out_of_bounds()
+	_expect(player.global_position.is_equal_approx(player.recovery_position), "Fallen player did not return to the recovery point")
+	_expect(player.velocity.is_zero_approx(), "Fall recovery did not clear player velocity")
+
 	if failures.is_empty():
-		print("CONTROLLER_CONTRACT_PASS actions=%d partial=%.3f planar=%.3f diagonal=%.3f stopped=%.3f sprint=%.3f" % [required_actions.size(), partial_speed, planar_speed, diagonal_speed, stopped_speed, measured_sprint_speed])
+		print("CONTROLLER_CONTRACT_PASS actions=%d partial=%.3f planar=%.3f diagonal=%.3f stopped=%.3f sprint=%.3f recovery=true" % [required_actions.size(), partial_speed, planar_speed, diagonal_speed, stopped_speed, measured_sprint_speed])
 		quit(0)
 	else:
 		for failure in failures:
