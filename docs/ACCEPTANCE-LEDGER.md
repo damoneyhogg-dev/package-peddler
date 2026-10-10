@@ -20,6 +20,7 @@
 
 ## Vehicle
 
+- **Vertical-slice foundation complete:** a depot-side proximity prompt opens a two-option fictional vehicle selector (Parcel Finch / Cargo Comet), supports explicit selection or cancellation, gives visible confirmation, and persists the selected option across reload. This is a selection foundation, not drivable vehicle swapping.
 - Proximity and door-side entry gate.
 - Natural enter/exit transition without teleport visible to the player.
 - Analog steering, throttle, and braking.
@@ -55,6 +56,7 @@
 
 ## Economy and persistence
 
+- **Vertical-slice foundation complete:** selected vehicle, combat accessibility setting, contested-address outcome, reward-claimed flag, credits, reputation, and route-delay consequences use a safe JSON save. Missing/corrupt data falls back to defaults.
 - Gross payout minus fuel, mileage/maintenance, and penalties equals net earnings.
 - Route reward is once-only.
 - Save/reload restores player, vehicle, route, packages, stops, expenses, and earnings.
@@ -62,6 +64,8 @@
 
 ## Contested-delivery encounters (post-core extension)
 
+- **Vertical-slice foundation complete:** the flagged fictional home has one rival courier encounter with de-escalate, leave, or opt-in non-lethal fight paths. The lightweight turn loop includes stamina, light/heavy strikes, block, dodge, health, knockdown win/loss, consequences, a combat-disable toggle, and persistent once-only settlement.
+- **Scope boundary:** this foundation has no weapons, gore, civilian targeting, free-form collision combat, combo animation, or repeated payout. Production hit reactions, recovery animation, and route-wide encounter variety remain future work.
 - Encounters occur only at explicitly flagged fictional delivery stops and only against another courier NPC.
 - Player can de-escalate, leave, or choose a non-lethal hand-to-hand fight.
 - Combat supports stamina, light/heavy strikes, block, dodge, hit reaction, knockdown, recovery, and a clear stop condition.

@@ -28,6 +28,7 @@ var spring_arm: SpringArm3D
 var camera: Camera3D
 var current_interaction_target: Node3D
 var recovery_position := Vector3.ZERO
+var controls_enabled := true
 
 func _ready() -> void:
 	recovery_position = global_position
@@ -98,6 +99,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _physics_process(delta: float) -> void:
+	if not controls_enabled:
+		velocity.x = move_toward(velocity.x, 0.0, braking * delta)
+		velocity.z = move_toward(velocity.z, 0.0, braking * delta)
+		move_and_slide()
+		_update_gait(delta)
+		return
 	_update_gamepad_look(delta)
 	_update_camera_mode()
 	_update_interaction_target()

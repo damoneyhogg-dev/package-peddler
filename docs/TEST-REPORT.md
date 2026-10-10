@@ -16,7 +16,8 @@ Date: 2026-10-09
 - Headless main-scene startup: exit 0 and `PACKAGE_PEDDLER_READY character=rigged environment=vertical_slice`.
 - Character asset contract: `CHARACTER_ASSET_CONTRACT_PASS rigged=true clips=3`.
 - Controller contract: `CONTROLLER_CONTRACT_PASS actions=12 partial=1.575 planar=3.600 diagonal=4.200 stopped=0.000 sprint=7.000 recovery=true rigged=true`.
-- Main contract: `MAIN_CONTRACT_PASS pause=true contextual_anchors=2 world_boundaries=4 environment_features=8`.
+- Gameplay state contract: `GAMEPLAY_STATE_CONTRACT_PASS vehicles=2 combat_toggle=true knockdown=true persistence=true idempotent_reward=true`.
+- Main contract: `MAIN_CONTRACT_PASS pause=true contextual_anchors=3 vehicle_cancel=true encounter_choices=true world_boundaries=4 environment_features=10`.
 - Blender export: 26,756 triangles, 53 bones, four materials, and embedded Idle/Walk/Run actions.
 - Off-screen GPU render passed at 1280x720 using Intel UHD Graphics 620 / OpenGL 3.3 Compatibility; idle, walk, and run poses were visually inspected.
 - Required keyboard/gamepad actions exist.
@@ -34,6 +35,8 @@ Date: 2026-10-09
 - Idle, Walk, and Run play on the real 53-bone skeleton and transition from controller velocity.
 - A fictionalized authored 3D neighborhood now includes a road, sidewalks, house facade, warehouse/loading dock, minivan, trees, utility poles, mailboxes, hydrant, and traffic barriers.
 - Appearance profile round-trip passes with six skin tones and three vest styles.
+- Depot vehicle selector exposes two named fictional options, cancellation, keyboard/gamepad mappings, visible feedback, and saved selection.
+- The flagged contested address exposes de-escalate, leave, and optional non-lethal fight paths. Automated checks cover combat disable, stamina/knockdown completion, consequences, save/reload, and reward idempotency.
 - Owner desktop playtest passed keyboard walking, backward movement, sprint, camera movement/view switching, pause/resume, and the corrected platform-edge protection on the target laptop.
 
 ## Not yet verified
@@ -42,6 +45,6 @@ Date: 2026-10-09
 - Final likeness-quality character, hair, refined clothing geometry, and AnimationTree blend graph.
 - Visual customization screen and rendered vest variants (data foundation only).
 - Foot/hand IK, lifting, carrying, stairs, doors, and vehicle transitions.
-- Driving, warehouse, route selection, package workflow, five deliveries, earnings, and persistence.
+- Driving, warehouse, route selection, package workflow, five deliveries, and the full economy/persistence model. Only the bounded vehicle/encounter state currently persists.
 
-The current scene is a playable character-and-environment vertical-slice milestone. It is still not the complete five-delivery game: package handling, driving, warehouse workflow, delivery stops, earnings, and persistence remain incomplete.
+The current scene is a playable character-and-environment vertical-slice milestone with a bounded vehicle-choice and contested-address foundation. It is still not the complete five-delivery game: package handling, driving, warehouse workflow, delivery stops, and the full economy remain incomplete.

@@ -1,19 +1,26 @@
 extends Node3D
 
 const PlayerController = preload("res://src/player_controller.gd")
+const GameplayState = preload("res://src/gameplay_state.gd")
 
 var status_label: Label
 var interaction_label: Label
 var pause_label: Label
 var player: PackagePeddlerPlayer
+var modal_panel: ColorRect
+var modal_label: Label
+var active_modal := ""
+var gameplay_state := GameplayState.new()
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	gameplay_state.load_game()
 	_build_lighting()
 	_build_neighborhood_vertical_slice()
 	_build_player()
 	_build_hud()
-	print("PACKAGE_PEDDLER_READY character=rigged environment=vertical_slice")
+	_show_status("Loaded vehicle: %s | Credits: %d | Reputation: %d" % [gameplay_state.selected_vehicle, gameplay_state.credits, gameplay_state.reputation])
+	print("PACKAGE_PEDDLER_READY character=rigged environment=vertical_slice vehicle_swap=true contested_address=true")
 
 func _build_lighting() -> void:
 	var environment := WorldEnvironment.new()
@@ -58,9 +65,14 @@ func _build_neighborhood_vertical_slice() -> void:
 	_build_house()
 	_build_warehouse()
 	_build_minivan()
+	_build_second_vehicle()
+	_build_rival_courier()
 	_build_street_details()
 	_add_static_box("LoadingDock", Vector3(13.0, 0.45, -8.8), Vector3(12.0, 0.9, 2.0), Color("4d555b"))
 	_add_interaction_point("VehicleDoor", Vector3(-6.4, 1.0, -2.0), "enter the parked vehicle")
+	get_node("VehicleDoor").set_meta("interaction_kind", "vehicle_swap")
+	_add_interaction_point("ContestedAddress", Vector3(-12.0, 1.0, -5.2), "deliver at the contested address")
+	get_node("ContestedAddress").set_meta("interaction_kind", "contested_address")
 	_add_interaction_point("WarehouseEntrance", Vector3(13.0, 1.0, -8.0), "enter the warehouse")
 	for x in range(-2, 3):
 		_add_static_box("TrafficBarrier_%s" % x, Vector3(float(x) * 2.2 + 16.0, 0.35, 8.0), Vector3(1.4, 0.7, 0.34), Color("dc762c"))
@@ -91,6 +103,17 @@ func _build_minivan() -> void:
 	for wheel_z in [-3.35, -0.7]:
 		_add_mesh_cylinder("VanWheelL", Vector3(-6.1, 0.45, wheel_z), 0.42, 0.22, Color("17191b"), Vector3(0.0, 0.0, 90.0))
 		_add_mesh_cylinder("VanWheelR", Vector3(-3.9, 0.45, wheel_z), 0.42, 0.22, Color("17191b"), Vector3(0.0, 0.0, 90.0))
+
+func _build_second_vehicle() -> void:
+	_add_static_box("CargoComet", Vector3(-9.0, 0.58, -2.0), Vector3(1.9, 1.0, 3.7), Color("bd5c35"))
+	_add_mesh_box("CometCabin", Vector3(-9.0, 1.2, -1.75), Vector3(1.75, 0.75, 1.9), Color("d07043"))
+	for wheel_z in [-3.05, -0.85]:
+		_add_mesh_cylinder("CometWheelL", Vector3(-9.98, 0.4, wheel_z), 0.36, 0.2, Color("17191b"), Vector3(0.0, 0.0, 90.0))
+		_add_mesh_cylinder("CometWheelR", Vector3(-8.02, 0.4, wheel_z), 0.36, 0.2, Color("17191b"), Vector3(0.0, 0.0, 90.0))
+
+func _build_rival_courier() -> void:
+	_add_mesh_cylinder("RivalCourierBody", Vector3(-10.7, 1.05, -5.4), 0.32, 1.35, Color("7b3548"))
+	_add_mesh_sphere("RivalCourierHead", Vector3(-10.7, 1.95, -5.4), 0.28, Color("9a684d"))
 
 func _build_street_details() -> void:
 	for tree_data in [
@@ -221,8 +244,24 @@ func _build_hud() -> void:
 	pause_label.add_theme_font_size_override("font_size", 28)
 	pause_label.visible = false
 	layer.add_child(pause_label)
+	modal_panel = ColorRect.new()
+	modal_panel.position = Vector2(340.0, 210.0)
+	modal_panel.size = Vector2(600.0, 300.0)
+	modal_panel.color = Color(0.025, 0.035, 0.05, 0.96)
+	modal_panel.visible = false
+	layer.add_child(modal_panel)
+	modal_label = Label.new()
+	modal_label.position = Vector2(28.0, 24.0)
+	modal_label.size = Vector2(544.0, 252.0)
+	modal_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	modal_label.add_theme_font_size_override("font_size", 19)
+	modal_panel.add_child(modal_label)
 
 func _unhandled_input(event: InputEvent) -> void:
+	if active_modal != "" and event.is_pressed() and not event.is_echo():
+		_handle_modal_input()
+		get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed("pause") and not event.is_echo():
 		_toggle_pause()
 		get_viewport().set_input_as_handled()
@@ -236,7 +275,96 @@ func _on_interaction_target_changed(target: Node3D) -> void:
 	interaction_label.text = "Press E / A to %s" % String(target.get_meta("interaction_text", "interact")) if is_instance_valid(target) else ""
 
 func _on_interaction_requested(target: Node3D) -> void:
-	status_label.text = "Context interaction accepted: %s" % String(target.get_meta("interaction_text", "interact"))
-	get_tree().create_timer(2.2).timeout.connect(func() -> void:
-		status_label.text = "WASD / left stick: move   Shift: sprint   Mouse / right stick: camera\nV / Y: camera view   E / A: interact   Esc / Menu: pause"
-	)
+	match String(target.get_meta("interaction_kind", "")):
+		"vehicle_swap":
+			_open_vehicle_menu()
+		"contested_address":
+			_open_encounter_menu()
+		_:
+			_show_status("Context interaction accepted: %s" % String(target.get_meta("interaction_text", "interact")))
+
+func _open_vehicle_menu() -> void:
+	active_modal = "vehicle"
+	modal_panel.visible = true
+	player.controls_enabled = false
+	modal_label.text = "VEHICLE SWAP - currently: %s\n\n[1 / X] Parcel Finch - roomy blue delivery van\n[2 / Y] Cargo Comet - nimble orange compact\n\n[Q / B] Cancel and keep current vehicle" % gameplay_state.selected_vehicle
+
+func _open_encounter_menu() -> void:
+	if gameplay_state.encounter_resolved:
+		_show_status("Contested address already resolved: %s. No repeat payout." % gameplay_state.encounter_outcome)
+		return
+	active_modal = "encounter"
+	modal_panel.visible = true
+	player.controls_enabled = false
+	modal_label.text = "CONTESTED ADDRESS\nAnother fictional courier claims this delivery.\n\n[1 / X] De-escalate (+reputation, small delay)\n[2 / Y] Leave (no fight, route delay)\n[3 / A] Non-lethal fight%s\n[4 / B] Toggle combat accessibility: %s\n[Q] Cancel" % ["" if gameplay_state.combat_enabled else " (DISABLED)", "ON" if gameplay_state.combat_enabled else "OFF"]
+
+func _handle_modal_input() -> void:
+	if Input.is_action_just_pressed("menu_cancel"):
+		if active_modal == "fight":
+			_finish_encounter("left")
+		else:
+			_close_modal("Choice cancelled; no state changed.")
+		return
+	match active_modal:
+		"vehicle":
+			if Input.is_action_just_pressed("choice_one"):
+				_choose_vehicle(0)
+			elif Input.is_action_just_pressed("choice_two"):
+				_choose_vehicle(1)
+			elif Input.is_action_just_pressed("choice_four"):
+				_close_modal("Choice cancelled; no state changed.")
+		"encounter":
+			if Input.is_action_just_pressed("choice_one"):
+				_finish_encounter("deescalated")
+			elif Input.is_action_just_pressed("choice_two"):
+				_finish_encounter("left")
+			elif Input.is_action_just_pressed("choice_three"):
+				if gameplay_state.begin_fight():
+					active_modal = "fight"
+					_update_fight_hud("The rival raises their guard. No weapons; fight ends at knockdown.")
+				else:
+					_show_status("Combat is disabled. Choose de-escalate or leave.")
+			elif Input.is_action_just_pressed("choice_four"):
+				gameplay_state.combat_enabled = not gameplay_state.combat_enabled
+				gameplay_state.save_game()
+				_open_encounter_menu()
+		"fight":
+			var action := ""
+			if Input.is_action_just_pressed("combat_light"):
+				action = "light"
+			elif Input.is_action_just_pressed("combat_heavy"):
+				action = "heavy"
+			elif Input.is_action_just_pressed("combat_block"):
+				action = "block"
+			elif Input.is_action_just_pressed("combat_dodge"):
+				action = "dodge"
+			if action != "":
+				var result := gameplay_state.combat_turn(action)
+				if gameplay_state.encounter_resolved:
+					gameplay_state.save_game()
+					_close_modal("%s Consequences: %d credits, reputation %d, +%d route minutes." % [result.message, gameplay_state.credits, gameplay_state.reputation, gameplay_state.route_minutes])
+				else:
+					_update_fight_hud(result.message)
+
+func _choose_vehicle(index: int) -> void:
+	gameplay_state.select_vehicle(index)
+	gameplay_state.save_game()
+	_close_modal("Vehicle selected and saved: %s" % gameplay_state.selected_vehicle)
+
+func _finish_encounter(outcome: String) -> void:
+	var result := gameplay_state.resolve_encounter(outcome)
+	gameplay_state.save_game()
+	_close_modal("%s Reward: %d credits. Reputation: %d. Route delay: %d min." % [result.message, result.reward, gameplay_state.reputation, gameplay_state.route_minutes])
+
+func _update_fight_hud(message: String) -> void:
+	modal_label.text = "NON-LETHAL RIVAL ENCOUNTER\nYou: %d health | Rival: %d health | Stamina: %d\n\n%s\n\n[J / X] Light (15)   [K / Y] Heavy (30)\n[L / LB] Block   [Space / B] Dodge (20)" % [gameplay_state.player_health, gameplay_state.rival_health, gameplay_state.stamina, message]
+
+func _close_modal(message: String) -> void:
+	active_modal = ""
+	modal_panel.visible = false
+	player.controls_enabled = true
+	_show_status(message)
+
+func _show_status(message: String) -> void:
+	if status_label:
+		status_label.text = message
