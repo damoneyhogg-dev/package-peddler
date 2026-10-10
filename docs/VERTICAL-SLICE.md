@@ -2,7 +2,7 @@
 
 ## Current bounded systems foundation
 
-The current build includes one proximity-gated depot selector with two fictional vehicles and one explicitly flagged fictional delivery address with a rival courier. The address supports peaceful de-escalation, leaving, or an optional non-lethal stamina encounter. Combat can be disabled without removing peaceful paths. Outcomes apply credits, reputation, and route-time consequences once and persist to `user://package_peddler_save.json`.
+The current build includes one proximity-gated depot selector with two fictional vehicles and one explicitly flagged fictional delivery address with a rival courier. The address supports peaceful de-escalation, leaving, or an optional non-lethal stamina encounter with a Q/RB retreat. Combat can be disabled without removing peaceful paths. Outcomes apply credits, reputation, and route-time consequences once and persist to the versioned, validated `user://package_peddler_save.json`; malformed or semantically invalid data falls back safely.
 
 This milestone proves choice flow, accessibility, feedback, persistence, and reward idempotency. It does **not** claim drivable vehicle swapping, a complete delivery route, animation-rich combat, or the five-stop production target below.
 

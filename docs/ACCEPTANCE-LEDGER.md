@@ -56,7 +56,7 @@
 
 ## Economy and persistence
 
-- **Vertical-slice foundation complete:** selected vehicle, combat accessibility setting, contested-address outcome, reward-claimed flag, credits, reputation, and route-delay consequences use a safe JSON save. Missing/corrupt data falls back to defaults.
+- **Vertical-slice foundation complete:** selected vehicle, combat accessibility setting, contested-address outcome, reward-claimed flag, credits, reputation, and route-delay consequences use a schema-versioned JSON save with temporary-file replacement. Missing, malformed, wrong-schema, and invalid resolved-outcome data falls back to defaults; bounded numeric fields and repairable unresolved-state invariants are repaired.
 - Gross payout minus fuel, mileage/maintenance, and penalties equals net earnings.
 - Route reward is once-only.
 - Save/reload restores player, vehicle, route, packages, stops, expenses, and earnings.

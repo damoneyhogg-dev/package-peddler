@@ -286,7 +286,7 @@ func _on_interaction_requested(target: Node3D) -> void:
 func _open_vehicle_menu() -> void:
 	active_modal = "vehicle"
 	modal_panel.visible = true
-	player.controls_enabled = false
+	player.set_controls_enabled(false)
 	modal_label.text = "VEHICLE SWAP - currently: %s\n\n[1 / X] Parcel Finch - roomy blue delivery van\n[2 / Y] Cargo Comet - nimble orange compact\n\n[Q / B] Cancel and keep current vehicle" % gameplay_state.selected_vehicle
 
 func _open_encounter_menu() -> void:
@@ -295,15 +295,15 @@ func _open_encounter_menu() -> void:
 		return
 	active_modal = "encounter"
 	modal_panel.visible = true
-	player.controls_enabled = false
+	player.set_controls_enabled(false)
 	modal_label.text = "CONTESTED ADDRESS\nAnother fictional courier claims this delivery.\n\n[1 / X] De-escalate (+reputation, small delay)\n[2 / Y] Leave (no fight, route delay)\n[3 / A] Non-lethal fight%s\n[4 / B] Toggle combat accessibility: %s\n[Q] Cancel" % ["" if gameplay_state.combat_enabled else " (DISABLED)", "ON" if gameplay_state.combat_enabled else "OFF"]
 
 func _handle_modal_input() -> void:
+	if active_modal == "fight" and Input.is_action_just_pressed("combat_retreat"):
+		_retreat_fight()
+		return
 	if Input.is_action_just_pressed("menu_cancel"):
-		if active_modal == "fight":
-			_finish_encounter("left")
-		else:
-			_close_modal("Choice cancelled; no state changed.")
+		_close_modal("Choice cancelled; no state changed.")
 		return
 	match active_modal:
 		"vehicle":
@@ -356,13 +356,19 @@ func _finish_encounter(outcome: String) -> void:
 	gameplay_state.save_game()
 	_close_modal("%s Reward: %d credits. Reputation: %d. Route delay: %d min." % [result.message, result.reward, gameplay_state.reputation, gameplay_state.route_minutes])
 
+func _retreat_fight() -> void:
+	var result := gameplay_state.retreat_from_fight()
+	gameplay_state.save_game()
+	_close_modal("%s Reputation: %d. Route delay: %d min." % [result.message, gameplay_state.reputation, gameplay_state.route_minutes])
+
 func _update_fight_hud(message: String) -> void:
-	modal_label.text = "NON-LETHAL RIVAL ENCOUNTER\nYou: %d health | Rival: %d health | Stamina: %d\n\n%s\n\n[J / X] Light (15)   [K / Y] Heavy (30)\n[L / LB] Block   [Space / B] Dodge (20)" % [gameplay_state.player_health, gameplay_state.rival_health, gameplay_state.stamina, message]
+	modal_label.text = "NON-LETHAL RIVAL ENCOUNTER\nYou: %d health | Rival: %d health | Stamina: %d\n\n%s\n\n[J / X] Light (15)   [K / Y] Heavy (30)\n[L / LB] Block   [Space / B] Dodge (20)\n[Q / RB] Retreat (leave consequence)" % [gameplay_state.player_health, gameplay_state.rival_health, gameplay_state.stamina, message]
 
 func _close_modal(message: String) -> void:
 	active_modal = ""
 	modal_panel.visible = false
-	player.controls_enabled = true
+	player.suppress_modal_camera_leak()
+	player.set_controls_enabled(true)
 	_show_status(message)
 
 func _show_status(message: String) -> void:

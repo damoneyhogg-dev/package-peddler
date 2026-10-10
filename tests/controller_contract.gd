@@ -15,10 +15,15 @@ func _run() -> void:
 	var required_actions := [
 		"move_left", "move_right", "move_forward", "move_back",
 		"look_left", "look_right", "look_up", "look_down",
-		"sprint", "interact", "camera_toggle", "pause"
+		"sprint", "interact", "camera_toggle", "pause", "combat_retreat"
 	]
 	for action in required_actions:
 		_expect(InputMap.has_action(action), "Missing input action: %s" % action)
+	var retreat_has_rb := false
+	for mapping in InputMap.action_get_events("combat_retreat"):
+		if mapping is InputEventJoypadButton and mapping.button_index == JOY_BUTTON_RIGHT_SHOULDER:
+			retreat_has_rb = true
+	_expect(retreat_has_rb, "Combat retreat is not mapped to a distinct controller RB action: %s" % str(InputMap.action_get_events("combat_retreat")))
 
 	var player := PlayerController.new()
 	root.add_child(player)
@@ -35,6 +40,17 @@ func _run() -> void:
 	_expect(player.get_node_or_null("CameraPivot/CameraCollisionArm/GameplayCamera") is Camera3D, "Gameplay camera was not created")
 	_expect(player.camera.current, "Gameplay camera is not current")
 	_expect(is_equal_approx(player.spring_arm.spring_length, 3.6), "Third-person camera distance is incorrect")
+	Input.action_press("camera_toggle")
+	player.suppress_modal_camera_leak()
+	player._update_camera_mode()
+	_expect(not player.first_person, "Modal-closing shared input leaked into camera toggle")
+	Input.action_release("camera_toggle")
+	player._update_camera_mode()
+	Input.action_press("camera_toggle")
+	player._update_camera_mode()
+	_expect(player.first_person, "Camera toggle did not recover after shared input release")
+	Input.action_release("camera_toggle")
+	player._update_camera_mode()
 
 	var interaction_point := Marker3D.new()
 	interaction_point.name = "TestInteractionPoint"
@@ -47,6 +63,15 @@ func _run() -> void:
 	player._update_interaction_target()
 	_expect(player.current_interaction_target == null, "Out-of-range interaction target remained selected")
 	player.position = Vector3.ZERO
+	player.velocity = Vector3(3.0, 0.0, 2.0)
+	var frozen_position := player.global_position
+	player.set_controls_enabled(false)
+	Input.action_press("move_forward")
+	player._physics_process(1.0 / 15.0)
+	Input.action_release("move_forward")
+	_expect(player.global_position.is_equal_approx(frozen_position), "Disabled modal controls allowed position drift")
+	_expect(player.velocity.is_zero_approx(), "Disabled modal controls retained velocity")
+	player.set_controls_enabled(true)
 
 	Input.action_press("move_forward", 0.5)
 	for frame in range(12):
@@ -101,7 +126,7 @@ func _run() -> void:
 	_expect(player.velocity.is_zero_approx(), "Fall recovery did not clear player velocity")
 
 	if failures.is_empty():
-		print("CONTROLLER_CONTRACT_PASS actions=%d partial=%.3f planar=%.3f diagonal=%.3f stopped=%.3f sprint=%.3f recovery=true rigged=true" % [required_actions.size(), partial_speed, planar_speed, diagonal_speed, stopped_speed, measured_sprint_speed])
+		print("CONTROLLER_CONTRACT_PASS actions=%d modal_freeze=true camera_leak_blocked=true partial=%.3f planar=%.3f diagonal=%.3f stopped=%.3f sprint=%.3f recovery=true rigged=true" % [required_actions.size(), partial_speed, planar_speed, diagonal_speed, stopped_speed, measured_sprint_speed])
 		quit(0)
 	else:
 		for failure in failures:

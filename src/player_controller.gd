@@ -29,6 +29,7 @@ var camera: Camera3D
 var current_interaction_target: Node3D
 var recovery_position := Vector3.ZERO
 var controls_enabled := true
+var suppress_camera_toggle_until_release := false
 
 func _ready() -> void:
 	recovery_position = global_position
@@ -100,9 +101,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _physics_process(delta: float) -> void:
 	if not controls_enabled:
-		velocity.x = move_toward(velocity.x, 0.0, braking * delta)
-		velocity.z = move_toward(velocity.z, 0.0, braking * delta)
-		move_and_slide()
+		velocity = Vector3.ZERO
 		_update_gait(delta)
 		return
 	_update_gamepad_look(delta)
@@ -124,10 +123,22 @@ func _apply_camera_rotation() -> void:
 		camera_pivot.rotation = Vector3(camera_pitch, camera_yaw, 0.0)
 
 func _update_camera_mode() -> void:
+	if suppress_camera_toggle_until_release:
+		if not Input.is_action_pressed("camera_toggle"):
+			suppress_camera_toggle_until_release = false
+		return
 	if Input.is_action_just_pressed("camera_toggle"):
 		first_person = not first_person
 		spring_arm.spring_length = 0.08 if first_person else 3.6
 		visual_root.visible = not first_person
+
+func set_controls_enabled(enabled: bool) -> void:
+	controls_enabled = enabled
+	if not enabled:
+		velocity = Vector3.ZERO
+
+func suppress_modal_camera_leak() -> void:
+	suppress_camera_toggle_until_release = true
 
 func _update_interaction() -> void:
 	if Input.is_action_just_pressed("interact") and is_instance_valid(current_interaction_target):

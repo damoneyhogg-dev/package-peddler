@@ -35,8 +35,14 @@ func _run() -> void:
 	var starting_vehicle: String = game.gameplay_state.selected_vehicle
 	game._open_vehicle_menu()
 	_expect(game.active_modal == "vehicle" and game.modal_panel.visible, "Vehicle choice UI did not open")
+	_expect("Parcel Finch" in game.modal_label.text and "Cargo Comet" in game.modal_label.text, "Vehicle choices are not unambiguous in the modal")
 	_expect(not game.player.controls_enabled, "Player can move while vehicle choice is open")
+	Input.action_press("camera_toggle")
 	game._close_modal("Contract cancellation")
+	game.player._update_camera_mode()
+	_expect(not game.player.first_person, "Vehicle selection Y input leaked into camera toggle")
+	Input.action_release("camera_toggle")
+	game.player._update_camera_mode()
 	_expect(game.gameplay_state.selected_vehicle == starting_vehicle, "Cancelling vehicle choice changed selection")
 	_expect(not game.modal_panel.visible and game.player.controls_enabled, "Cancelling did not restore gameplay")
 	game.gameplay_state = load("res://src/gameplay_state.gd").new()
@@ -49,7 +55,7 @@ func _run() -> void:
 		_expect(game.get_node_or_null(environment_name) != null, "3D environment feature is missing: %s" % environment_name)
 
 	if failures.is_empty():
-		print("MAIN_CONTRACT_PASS pause=true contextual_anchors=3 vehicle_cancel=true encounter_choices=true world_boundaries=4 environment_features=10")
+		print("MAIN_CONTRACT_PASS pause=true contextual_anchors=3 vehicle_cancel=true camera_leak_blocked=true encounter_choices=true world_boundaries=4 environment_features=10")
 		quit(0)
 	else:
 		for failure in failures:
