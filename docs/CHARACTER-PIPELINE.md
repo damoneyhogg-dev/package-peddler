@@ -8,6 +8,16 @@
 4. Use Blender to clean the mesh, retarget and combine animations, reduce textures/geometry, and export GLB.
 5. Use Godot AnimationTree for idle/walk/run/turn/lift/carry blending and add foot/hand IK where interactions require it.
 
+## Implemented character milestone (2026-10-09)
+
+- MPFB creates the courier from bundled CC0 MakeHuman data in Blender 5.2.2.
+- The `game_engine` rig exports with 53 deforming bones and no proprietary source files.
+- Hidden authoring/helper geometry is removed, producing a 26,756-triangle runtime mesh within the Intel UHD 620 budget.
+- Four flat-color materials provide visible skin, a high-visibility safety top, pants, and shoes without heavy procedural shaders or texture memory.
+- Idle, walk, and run cycles are authored in the local build script and embedded in the GLB.
+- Godot imports all three clips and the live controller switches among them based on movement speed.
+- This is a functional rigged vertical-slice character, not final likeness art. Hair, refined clothing geometry, three rendered vest variants, richer facial detail, interaction clips, IK, and an AnimationTree blend graph remain later work.
+
 ## Why video frames are references, not the rig
 
 A normal video provides changing 2D projections, not a clean 3D mesh, skeleton, skin weights, or complete hidden surfaces. Frames can guide likeness and clothing, but the game still needs a modeled body, rig, animation clips, and collision representation. Accurate reconstruction would require controlled multi-angle capture or photogrammetry; the available clips are useful face references but mostly close, low-angle views rather than neutral full-body coverage.
@@ -23,12 +33,12 @@ A normal video provides changing 2D projections, not a clean 3D mesh, skeleton, 
 ## Acquisition and export checklist
 
 1. MPFB 2.0.17 is installed from Blender's official Extensions release and verified with SHA-256 `4f0a879d64a39bf646fbf5f53601ac678855da329d650617dca5737548239a87`.
-2. Create the courier in a neutral T-pose using only core CC0 assets.
-3. Build and test the humanoid rig in Blender; use Rigify only where its generated rig fits the production skeleton and export requirements.
+2. Create the courier in a neutral T-pose using only core CC0 assets. **Complete for the vertical-slice base.**
+3. Build and test the humanoid rig in Blender; use Rigify only where its generated rig fits the production skeleton and export requirements. **Complete using MPFB's 53-bone game-engine rig.**
 4. Author or acquire separately verified CC0 clips for idle, walk, run, backward, strafe, starts, stops, 90/180-degree turns, bend, lift, carry, set-down, door interaction, scanning/phone use, vehicle entry, seated driving, and vehicle exit.
 5. If the open-source animation route cannot meet the milestone, record Mixamo as an explicit proprietary exception before downloading anything.
-6. Clean, retarget, and combine the clips in Blender.
-7. Export the optimized character and animations as GLB for Godot.
+6. Clean, retarget, and combine the clips in Blender. **Complete for locally authored idle/walk/run; interaction coverage remains.**
+7. Export the optimized character and animations as GLB for Godot. **Complete and contract-tested.**
 
 ## Intel UHD 620 performance budget
 

@@ -1,10 +1,10 @@
 # Package Peddler
 
-Realistic third-person courier and business simulator. This repository begins with a deliberately small, testable vertical slice before any open-world expansion.
+Realistic third-person courier and business simulator. This repository builds a deliberately small, testable vertical slice before any open-world expansion.
 
 ## Current verified target
 
-Milestone 1 is the character controller foundation:
+The current milestone includes:
 
 - camera-relative walking and sprinting;
 - smooth turning and acceleration/braking;
@@ -12,9 +12,11 @@ Milestone 1 is the character controller foundation:
 - third-person camera collision;
 - first-person/third-person toggle;
 - keyboard and standard gamepad mappings;
-- provisional procedural human used only to test motion.
+- a 26,756-triangle MPFB/MakeHuman courier with a 53-bone game rig;
+- locally authored idle, walk, and run animation clips;
+- a fictionalized 3D neighborhood with a house, road, sidewalks, warehouse, minivan, and street details.
 
-The procedural human and graybox buildings are **not final art** and are not claimed as realistic assets.
+The rigged human and neighborhood are functional vertical-slice art, not final likeness-quality or release-quality art. Driving, package handling, the warehouse loop, five deliveries, economy, and persistence are still under development.
 
 ## Run
 
@@ -39,4 +41,4 @@ Run:
 ..\tools\godot\4.7.2\Godot_v4.7.2-stable_win64_console.exe --headless --path . --script res://tests/controller_contract.gd
 ```
 
-The test verifies required input actions, the character collider, the camera collision arm, an active camera, and movement acceleration.
+The test verifies required input actions, the character collider, the camera collision arm, the rigged courier, all three locomotion clips, animation state selection, and movement acceleration.

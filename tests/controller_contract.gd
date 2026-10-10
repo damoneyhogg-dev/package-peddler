@@ -27,10 +27,14 @@ func _run() -> void:
 	player.fall_recovery_height = -1000.0
 
 	_expect(player.get_node_or_null("PlayerCollision") is CollisionShape3D, "Player collider was not created")
+	_expect(player.get_node_or_null("RiggedCourier") is Node3D, "Rigged courier visual was not created")
+	_expect(player.animation_player is AnimationPlayer, "Courier AnimationPlayer was not connected")
+	for animation_name in [&"Idle", &"Walk", &"Run"]:
+		_expect(player.animation_player != null and player.animation_player.has_animation(animation_name), "Courier controller is missing animation: %s" % animation_name)
 	_expect(player.get_node_or_null("CameraPivot/CameraCollisionArm") is SpringArm3D, "SpringArm3D camera collision was not created")
 	_expect(player.get_node_or_null("CameraPivot/CameraCollisionArm/GameplayCamera") is Camera3D, "Gameplay camera was not created")
 	_expect(player.camera.current, "Gameplay camera is not current")
-	_expect(is_equal_approx(player.spring_arm.spring_length, 4.8), "Third-person camera distance is incorrect")
+	_expect(is_equal_approx(player.spring_arm.spring_length, 3.6), "Third-person camera distance is incorrect")
 
 	var interaction_point := Marker3D.new()
 	interaction_point.name = "TestInteractionPoint"
@@ -50,6 +54,7 @@ func _run() -> void:
 	Input.action_release("move_forward")
 	var partial_speed := Vector2(player.velocity.x, player.velocity.z).length()
 	_expect(partial_speed > 1.0 and partial_speed <= player.walk_speed * 0.55, "Partial analog input did not preserve stick magnitude")
+	_expect(player.current_animation == "Walk", "Movement did not select the Walk animation")
 
 	player.velocity = Vector3.ZERO
 	Input.action_press("move_forward")
@@ -75,6 +80,7 @@ func _run() -> void:
 		player._physics_process(1.0 / 60.0)
 	var stopped_speed := Vector2(player.velocity.x, player.velocity.z).length()
 	_expect(stopped_speed < 0.05, "Released movement input did not brake to rest")
+	_expect(player.current_animation == "Idle", "Braking to rest did not restore the Idle animation")
 
 	player.velocity = Vector3.ZERO
 	Input.action_press("move_forward")
@@ -85,6 +91,7 @@ func _run() -> void:
 	Input.action_release("sprint")
 	var measured_sprint_speed := Vector2(player.velocity.x, player.velocity.z).length()
 	_expect(measured_sprint_speed > player.walk_speed and measured_sprint_speed <= player.sprint_speed + 0.05, "Sprint did not reach its configured speed band")
+	_expect(player.current_animation == "Run", "Sprint did not select the Run animation")
 
 	player.fall_recovery_height = configured_fall_recovery_height
 	player.global_position = Vector3(4.0, player.fall_recovery_height - 1.0, 4.0)
@@ -94,7 +101,7 @@ func _run() -> void:
 	_expect(player.velocity.is_zero_approx(), "Fall recovery did not clear player velocity")
 
 	if failures.is_empty():
-		print("CONTROLLER_CONTRACT_PASS actions=%d partial=%.3f planar=%.3f diagonal=%.3f stopped=%.3f sprint=%.3f recovery=true" % [required_actions.size(), partial_speed, planar_speed, diagonal_speed, stopped_speed, measured_sprint_speed])
+		print("CONTROLLER_CONTRACT_PASS actions=%d partial=%.3f planar=%.3f diagonal=%.3f stopped=%.3f sprint=%.3f recovery=true rigged=true" % [required_actions.size(), partial_speed, planar_speed, diagonal_speed, stopped_speed, measured_sprint_speed])
 		quit(0)
 	else:
 		for failure in failures:

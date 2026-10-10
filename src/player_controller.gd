@@ -1,6 +1,8 @@
 class_name PackagePeddlerPlayer
 extends CharacterBody3D
 
+const COURIER_SCENE: PackedScene = preload("res://assets/characters/courier.glb")
+
 signal interaction_requested(target: Node3D)
 signal interaction_target_changed(target: Node3D)
 
@@ -18,13 +20,9 @@ var gravity := 18.0
 var camera_yaw := 0.0
 var camera_pitch := -0.22
 var first_person := false
-var gait_time := 0.0
-
 var visual_root: Node3D
-var left_arm: MeshInstance3D
-var right_arm: MeshInstance3D
-var left_leg: MeshInstance3D
-var right_leg: MeshInstance3D
+var animation_player: AnimationPlayer
+var current_animation := ""
 var camera_pivot: Node3D
 var spring_arm: SpringArm3D
 var camera: Camera3D
@@ -35,7 +33,7 @@ func _ready() -> void:
 	recovery_position = global_position
 	gravity = float(ProjectSettings.get_setting("physics/3d/default_gravity", 18.0))
 	_build_collision()
-	_build_provisional_human()
+	_build_rigged_courier()
 	_build_camera()
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
@@ -49,51 +47,28 @@ func _build_collision() -> void:
 	collision.position.y = 0.9
 	add_child(collision)
 
-func _build_provisional_human() -> void:
-	visual_root = Node3D.new()
-	visual_root.name = "ProvisionalHumanRig"
+func _build_rigged_courier() -> void:
+	visual_root = COURIER_SCENE.instantiate() as Node3D
+	visual_root.name = "RiggedCourier"
 	add_child(visual_root)
+	animation_player = _find_animation_player(visual_root)
+	if animation_player == null:
+		push_error("Rigged courier is missing its AnimationPlayer")
+		return
+	for animation_name in [&"Idle", &"Walk", &"Run"]:
+		var animation := animation_player.get_animation(animation_name)
+		if animation:
+			animation.loop_mode = Animation.LOOP_LINEAR
+	_play_animation("Idle")
 
-	var uniform := StandardMaterial3D.new()
-	uniform.albedo_color = Color("243d5a")
-	var skin := StandardMaterial3D.new()
-	skin.albedo_color = Color("b87956")
-
-	var torso := _make_capsule(Vector3(0.0, 1.25, 0.0), Vector3(0.78, 0.95, 0.48), uniform)
-	torso.name = "Torso"
-	visual_root.add_child(torso)
-	var head := _make_sphere(Vector3(0.0, 1.95, 0.0), Vector3.ONE * 0.33, skin)
-	head.name = "Head"
-	visual_root.add_child(head)
-
-	left_arm = _make_capsule(Vector3(-0.5, 1.25, 0.0), Vector3(0.20, 0.72, 0.20), uniform)
-	right_arm = _make_capsule(Vector3(0.5, 1.25, 0.0), Vector3(0.20, 0.72, 0.20), uniform)
-	left_leg = _make_capsule(Vector3(-0.22, 0.48, 0.0), Vector3(0.24, 0.88, 0.24), uniform)
-	right_leg = _make_capsule(Vector3(0.22, 0.48, 0.0), Vector3(0.24, 0.88, 0.24), uniform)
-	visual_root.add_child(left_arm)
-	visual_root.add_child(right_arm)
-	visual_root.add_child(left_leg)
-	visual_root.add_child(right_leg)
-
-func _make_capsule(pos: Vector3, scale_value: Vector3, material: Material) -> MeshInstance3D:
-	var instance := MeshInstance3D.new()
-	var mesh := CapsuleMesh.new()
-	mesh.radius = 0.5
-	mesh.height = 1.0
-	mesh.material = material
-	instance.mesh = mesh
-	instance.position = pos
-	instance.scale = scale_value
-	return instance
-
-func _make_sphere(pos: Vector3, scale_value: Vector3, material: Material) -> MeshInstance3D:
-	var instance := MeshInstance3D.new()
-	var mesh := SphereMesh.new()
-	mesh.material = material
-	instance.mesh = mesh
-	instance.position = pos
-	instance.scale = scale_value
-	return instance
+func _find_animation_player(node: Node) -> AnimationPlayer:
+	if node is AnimationPlayer:
+		return node as AnimationPlayer
+	for child in node.get_children():
+		var found := _find_animation_player(child)
+		if found:
+			return found
+	return null
 
 func _build_camera() -> void:
 	camera_pivot = Node3D.new()
@@ -103,7 +78,7 @@ func _build_camera() -> void:
 
 	spring_arm = SpringArm3D.new()
 	spring_arm.name = "CameraCollisionArm"
-	spring_arm.spring_length = 4.8
+	spring_arm.spring_length = 3.6
 	spring_arm.margin = 0.12
 	camera_pivot.add_child(spring_arm)
 
@@ -144,7 +119,7 @@ func _apply_camera_rotation() -> void:
 func _update_camera_mode() -> void:
 	if Input.is_action_just_pressed("camera_toggle"):
 		first_person = not first_person
-		spring_arm.spring_length = 0.08 if first_person else 4.8
+		spring_arm.spring_length = 0.08 if first_person else 3.6
 		visual_root.visible = not first_person
 
 func _update_interaction() -> void:
@@ -206,19 +181,20 @@ func _notification(what: int) -> void:
 		velocity.x = 0.0
 		velocity.z = 0.0
 
-func _update_gait(delta: float) -> void:
+func _update_gait(_delta: float) -> void:
 	var planar_speed := Vector2(velocity.x, velocity.z).length()
-	if planar_speed > 0.2 and is_on_floor():
-		gait_time += delta * (6.0 if planar_speed < 5.0 else 9.0)
-		var swing := sin(gait_time) * (0.42 if planar_speed < 5.0 else 0.62)
-		left_arm.rotation.x = swing
-		right_arm.rotation.x = -swing
-		left_leg.rotation.x = -swing
-		right_leg.rotation.x = swing
-		visual_root.position.y = abs(sin(gait_time * 2.0)) * 0.025
+	if planar_speed > walk_speed + 0.45:
+		_play_animation("Run")
+	elif planar_speed > 0.2:
+		_play_animation("Walk")
 	else:
-		left_arm.rotation.x = move_toward(left_arm.rotation.x, 0.0, delta * 5.0)
-		right_arm.rotation.x = move_toward(right_arm.rotation.x, 0.0, delta * 5.0)
-		left_leg.rotation.x = move_toward(left_leg.rotation.x, 0.0, delta * 5.0)
-		right_leg.rotation.x = move_toward(right_leg.rotation.x, 0.0, delta * 5.0)
-		visual_root.position.y = move_toward(visual_root.position.y, 0.0, delta * 0.2)
+		_play_animation("Idle")
+
+func _play_animation(animation_name: String) -> void:
+	if animation_player == null or current_animation == animation_name:
+		return
+	if not animation_player.has_animation(animation_name):
+		push_error("Courier animation is missing: %s" % animation_name)
+		return
+	animation_player.play(animation_name, 0.18)
+	current_animation = animation_name

@@ -1,4 +1,6 @@
 .godot/
+tests/vertical_slice_*.png*
+*.blend1
 builds/
 *.tmp
 *.log

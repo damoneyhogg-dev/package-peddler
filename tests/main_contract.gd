@@ -30,9 +30,11 @@ func _run() -> void:
 	_expect(warehouse_point is Marker3D and warehouse_point.is_in_group("interactable"), "Warehouse interaction anchor is missing")
 	for boundary_name in ["WorldBoundaryNorth", "WorldBoundarySouth", "WorldBoundaryWest", "WorldBoundaryEast"]:
 		_expect(game.get_node_or_null(boundary_name) is StaticBody3D, "World boundary is missing: %s" % boundary_name)
+	for environment_name in ["RouteRoad", "SidewalkNorth", "Home", "HomeDoor", "Warehouse", "WarehouseDoor", "ParkedVehicle", "Hydrant"]:
+		_expect(game.get_node_or_null(environment_name) != null, "3D environment feature is missing: %s" % environment_name)
 
 	if failures.is_empty():
-		print("MAIN_CONTRACT_PASS pause=true contextual_anchors=2 world_boundaries=4")
+		print("MAIN_CONTRACT_PASS pause=true contextual_anchors=2 world_boundaries=4 environment_features=8")
 		quit(0)
 	else:
 		for failure in failures:

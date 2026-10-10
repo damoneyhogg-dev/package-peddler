@@ -1,0 +1,2 @@
+# Build-time authoring tools and Blender source files are intentionally not
+# imported into the Godot project. Runtime assets are exported under assets/.
