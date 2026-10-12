@@ -20,7 +20,7 @@ func _run() -> void:
 	_test_save_validation_and_repair()
 	_cleanup_test_save()
 	if failures.is_empty():
-		print("GAMEPLAY_STATE_CONTRACT_PASS vehicles=2 phases=true peaceful=2 combat_actions=4 win_loss_retreat=true persistence=true validation=true idempotent_reward=true")
+		print("GAMEPLAY_STATE_CONTRACT_PASS drivers=4 vehicles=2 phases=true peaceful=2 combat_actions=4 win_loss_retreat=true persistence=true validation=true idempotent_reward=true")
 		quit(0)
 	else:
 		for failure in failures:
@@ -30,6 +30,8 @@ func _run() -> void:
 
 func _test_vehicle_and_phase_guards() -> void:
 	var state := GameplayState.new()
+	_expect(state.select_driver(3) and state.selected_driver == "Alex Rivera", "Fourth driver cannot be selected")
+	_expect(not state.select_driver(4), "Out-of-range driver selection was accepted")
 	_expect(state.select_vehicle(1) and state.selected_vehicle == "Cargo Comet", "Second fictional vehicle cannot be selected")
 	_expect(not state.combat_turn("light").accepted, "Combat action was accepted without an active fight")
 	state.combat_enabled = false
@@ -91,13 +93,14 @@ func _test_combat_actions_and_outcomes() -> void:
 func _test_persistence_and_idempotency() -> void:
 	var state := GameplayState.new()
 	state.select_vehicle(1)
+	state.select_driver(2)
 	state.combat_enabled = false
 	state.resolve_encounter("deescalated")
 	_expect(state.save_game(TEST_SAVE), "State could not be saved")
 	_expect(not FileAccess.file_exists(TEST_SAVE + ".tmp") and not FileAccess.file_exists(TEST_SAVE + ".bak"), "Save left temporary replacement files")
 	var loaded := GameplayState.new()
 	_expect(loaded.load_game(TEST_SAVE), "State could not be reloaded")
-	_expect(loaded.selected_vehicle == "Cargo Comet" and not loaded.combat_enabled, "Vehicle or accessibility option did not persist")
+	_expect(loaded.selected_vehicle == "Cargo Comet" and loaded.selected_driver == "Jordan Reed" and not loaded.combat_enabled, "Driver, vehicle, or accessibility option did not persist")
 	_expect(loaded.encounter_resolved and loaded.encounter_reward_claimed, "Encounter settlement did not persist")
 	var duplicate := loaded.resolve_encounter("deescalated")
 	_expect(not duplicate.accepted and duplicate.reward == 0 and loaded.credits == 35, "Reload allowed duplicate reward")
@@ -112,20 +115,28 @@ func _test_save_validation_and_repair() -> void:
 	_expect(not wrong_schema.load_game(TEST_SAVE) and wrong_schema.selected_vehicle == "Parcel Finch", "Wrong schema did not fall back safely")
 	_write_json(TEST_SAVE, {
 		"schema_version": GameplayState.SCHEMA_VERSION,
+		"selected_driver": "Unknown Driver",
 		"selected_vehicle": "Unknown Vehicle", "combat_enabled": true,
 		"encounter_resolved": false, "encounter_outcome": "win", "encounter_reward_claimed": true,
-		"credits": -50, "reputation": 99999, "route_minutes": -8
+		"credits": -50, "reputation": 99999, "route_minutes": -8,
+		"route_phase": "NO_ROUTE", "route_id": "", "package_status": "ASSIGNED", "stop_status": "PENDING",
+		"delivery_reward_claimed": false, "delivery_earnings": 0,
+		"vehicle_position": [0.0, 0.0, 0.0], "vehicle_rotation_y": 0.0
 	})
 	var repaired := GameplayState.new()
 	_expect(repaired.load_game(TEST_SAVE), "Repairable semantic save was rejected")
-	_expect(repaired.selected_vehicle == "Parcel Finch" and repaired.credits == 0, "Vehicle/credit repair failed")
+	_expect(repaired.selected_driver == "Owner Courier" and repaired.selected_vehicle == "Parcel Finch" and repaired.credits == 0, "Driver/vehicle/credit repair failed")
 	_expect(repaired.reputation == 1000 and repaired.route_minutes == 0, "Numeric clamping failed")
 	_expect(not repaired.encounter_resolved and repaired.encounter_outcome == "" and not repaired.encounter_reward_claimed, "Unresolved encounter invariants were not repaired")
 	_write_json(TEST_SAVE, {
 		"schema_version": GameplayState.SCHEMA_VERSION,
+		"selected_driver": "Owner Courier",
 		"selected_vehicle": "Parcel Finch", "combat_enabled": true,
 		"encounter_resolved": true, "encounter_outcome": "invalid", "encounter_reward_claimed": false,
-		"credits": 50, "reputation": 0, "route_minutes": 0
+		"credits": 50, "reputation": 0, "route_minutes": 0,
+		"route_phase": "NO_ROUTE", "route_id": "", "package_status": "ASSIGNED", "stop_status": "PENDING",
+		"delivery_reward_claimed": false, "delivery_earnings": 0,
+		"vehicle_position": [0.0, 0.0, 0.0], "vehicle_rotation_y": 0.0
 	})
 	var invalid_semantics := GameplayState.new()
 	_expect(not invalid_semantics.load_game(TEST_SAVE) and not invalid_semantics.encounter_resolved and invalid_semantics.credits == 0, "Invalid resolved outcome did not reset safely")

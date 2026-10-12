@@ -38,6 +38,8 @@ combat_heavy={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":7
 combat_block={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":76),Object(InputEventJoypadButton,"button_index":9)]}
 combat_dodge={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":32),Object(InputEventJoypadButton,"button_index":1)]}
 combat_retreat={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":81),Object(InputEventJoypadButton,"button_index":10)]}
+vehicle_brake={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":32),Object(InputEventJoypadButton,"button_index":1)]}
+vehicle_park={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":80),Object(InputEventJoypadButton,"button_index":2)]}
 
 [physics]
 3d/default_gravity=18.0

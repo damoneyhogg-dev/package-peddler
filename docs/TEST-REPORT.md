@@ -17,7 +17,8 @@ Date: 2026-10-09
 - Character asset contract: `CHARACTER_ASSET_CONTRACT_PASS rigged=true clips=3`.
 - Controller contract: `CONTROLLER_CONTRACT_PASS actions=13 modal_freeze=true camera_leak_blocked=true partial=1.575 planar=3.600 diagonal=4.200 stopped=0.000 sprint=7.000 recovery=true rigged=true`.
 - Gameplay state contract: `GAMEPLAY_STATE_CONTRACT_PASS vehicles=2 phases=true peaceful=2 combat_actions=4 win_loss_retreat=true persistence=true validation=true idempotent_reward=true`.
-- Main contract: `MAIN_CONTRACT_PASS pause=true contextual_anchors=3 vehicle_cancel=true camera_leak_blocked=true encounter_choices=true world_boundaries=4 environment_features=10`.
+- Main contract: `MAIN_CONTRACT_PASS pause=true contextual_anchors=5 drivers=4 vehicle_cancel=true camera_leak_blocked=true encounter_choices=true world_boundaries=4 environment_features=10`.
+- Vehicle contract: `VEHICLE_CONTRACT_PASS door_open_close=true enter_exit=true throttle=true steering=true brake=true park=true`.
 - Blender export: 26,756 triangles, 53 bones, four materials, and embedded Idle/Walk/Run actions.
 - Off-screen GPU render passed at 1280x720 using Intel UHD Graphics 620 / OpenGL 3.3 Compatibility; idle, walk, and run poses were visually inspected.
 - Thirteen required movement/camera/interaction/retreat input actions exist; physical-device playtesting of the new mappings remains outstanding.
@@ -36,6 +37,8 @@ Date: 2026-10-09
 - A fictionalized authored 3D neighborhood now includes a road, sidewalks, house facade, warehouse/loading dock, minivan, trees, utility poles, mailboxes, hydrant, and traffic barriers.
 - Appearance profile round-trip passes with six skin tones and three vest styles.
 - Depot vehicle selector contracts cover two named options, modal opening/cancellation, movement lock, visible text, persistence API, and suppression of the shared Y camera action until release.
+- Four-driver selection covers the fictionalized owner-reference courier plus three original fictional profiles, saved selection, and visible runtime color badges.
+- Both fictional vehicles now have a collision body, animated driver door, dedicated chase camera, exclusive driving state, throttle/reverse, speed-dependent steering, service braking, Park gating, and stopped/parked exit protection.
 - State/API contracts cover de-escalate, leave, win, loss, retreat, block, dodge, stamina exhaustion, inactive/disabled combat rejection, consequence values, accessibility reload, malformed/wrong-schema fallback, semantic repair/clamping, temporary-save cleanup, and reward idempotency. These are automated state/UI contracts, not a claim of animation-rich physical combat.
 - Controller regression measures zero retained velocity and zero position drift while modal controls are disabled.
 - Owner desktop playtest passed keyboard walking, backward movement, sprint, camera movement/view switching, pause/resume, and the corrected platform-edge protection on the target laptop.
@@ -46,6 +49,6 @@ Date: 2026-10-09
 - Final likeness-quality character, hair, refined clothing geometry, and AnimationTree blend graph.
 - Visual customization screen and rendered vest variants (data foundation only).
 - Foot/hand IK, lifting, carrying, stairs, doors, and vehicle transitions.
-- Driving, warehouse, route selection, package workflow, five deliveries, and the full economy/persistence model. Only the bounded vehicle/encounter state currently persists.
+- Refined vehicle suspension, wheel animation, damage, traffic, natural entry/exit body animation, warehouse workflow, five deliveries, and the full economy/persistence model.
 
 The current scene is a playable character-and-environment vertical-slice milestone with a bounded vehicle-choice and contested-address foundation. It is still not the complete five-delivery game: package handling, driving, warehouse workflow, delivery stops, and the full economy remain incomplete.

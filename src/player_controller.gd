@@ -30,12 +30,15 @@ var current_interaction_target: Node3D
 var recovery_position := Vector3.ZERO
 var controls_enabled := true
 var suppress_camera_toggle_until_release := false
+var driver_variant := 0
+var driver_badge: MeshInstance3D
 
 func _ready() -> void:
 	recovery_position = global_position
 	gravity = float(ProjectSettings.get_setting("physics/3d/default_gravity", 18.0))
 	_build_collision()
 	_build_rigged_courier()
+	_build_driver_badge()
 	_build_camera()
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
@@ -71,6 +74,33 @@ func _find_animation_player(node: Node) -> AnimationPlayer:
 		if found:
 			return found
 	return null
+
+func _build_driver_badge() -> void:
+	driver_badge = MeshInstance3D.new()
+	driver_badge.name = "DriverVariantBadge"
+	var mesh := BoxMesh.new()
+	mesh.size = Vector3(0.46, 0.52, 0.045)
+	driver_badge.mesh = mesh
+	driver_badge.position = Vector3(0.0, 1.28, -0.26)
+	visual_root.add_child(driver_badge)
+	set_driver_variant(0)
+
+func set_driver_variant(index: int) -> void:
+	driver_variant = clampi(index, 0, 3)
+	if driver_badge == null:
+		return
+	var colors := [Color("d8e539"), Color("d94b62"), Color("3d91d4"), Color("e18a35")]
+	var material := StandardMaterial3D.new()
+	material.albedo_color = colors[driver_variant]
+	material.roughness = 0.7
+	driver_badge.material_override = material
+	set_meta("driver_variant", driver_variant)
+
+func set_player_active(active: bool) -> void:
+	set_controls_enabled(active)
+	visible = active
+	if camera:
+		camera.current = active
 
 func _build_camera() -> void:
 	camera_pivot = Node3D.new()

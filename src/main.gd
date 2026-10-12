@@ -2,6 +2,7 @@ extends Node3D
 
 const PlayerController = preload("res://src/player_controller.gd")
 const GameplayState = preload("res://src/gameplay_state.gd")
+const VehicleController = preload("res://src/vehicle_controller.gd")
 
 var status_label: Label
 var interaction_label: Label
@@ -11,6 +12,13 @@ var modal_panel: ColorRect
 var modal_label: Label
 var active_modal := ""
 var gameplay_state := GameplayState.new()
+var vehicles: Array[PackagePeddlerVehicle] = []
+var current_vehicle: PackagePeddlerVehicle
+var vehicle_door_point: Marker3D
+var driving := false
+var door_waiting_for_close := false
+var carried_package: MeshInstance3D
+var delivery_point: Marker3D
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -19,8 +27,11 @@ func _ready() -> void:
 	_build_neighborhood_vertical_slice()
 	_build_player()
 	_build_hud()
-	_show_status("Loaded vehicle: %s | Credits: %d | Reputation: %d" % [gameplay_state.selected_vehicle, gameplay_state.credits, gameplay_state.reputation])
-	print("PACKAGE_PEDDLER_READY character=rigged environment=vertical_slice vehicle_swap=true contested_address=true")
+	_apply_saved_driver()
+	_select_runtime_vehicle(GameplayState.VEHICLES.find(gameplay_state.selected_vehicle))
+	_show_status("Loaded driver: %s | Vehicle: %s | Credits: %d" % [gameplay_state.selected_driver, gameplay_state.selected_vehicle, gameplay_state.credits])
+	_open_driver_menu()
+	print("PACKAGE_PEDDLER_READY character=rigged drivers=4 vehicle_drive=true doors=true environment=vertical_slice")
 
 func _build_lighting() -> void:
 	var environment := WorldEnvironment.new()
@@ -69,11 +80,22 @@ func _build_neighborhood_vertical_slice() -> void:
 	_build_rival_courier()
 	_build_street_details()
 	_add_static_box("LoadingDock", Vector3(13.0, 0.45, -8.8), Vector3(12.0, 0.9, 2.0), Color("4d555b"))
-	_add_interaction_point("VehicleDoor", Vector3(-6.4, 1.0, -2.0), "enter the parked vehicle")
-	get_node("VehicleDoor").set_meta("interaction_kind", "vehicle_swap")
+	_add_interaction_point("DriverKiosk", Vector3(-11.0, 1.0, -3.2), "choose a courier")
+	get_node("DriverKiosk").set_meta("interaction_kind", "driver_select")
+	_add_interaction_point("VehicleSelector", Vector3(-7.0, 1.0, -4.2), "choose a delivery vehicle")
+	get_node("VehicleSelector").set_meta("interaction_kind", "vehicle_swap")
+	_add_interaction_point("VehicleDoor", Vector3(-6.4, 1.0, -2.0), "open the selected vehicle door")
+	vehicle_door_point = get_node("VehicleDoor") as Marker3D
+	vehicle_door_point.set_meta("interaction_kind", "vehicle_access")
 	_add_interaction_point("ContestedAddress", Vector3(-12.0, 1.0, -5.2), "deliver at the contested address")
 	get_node("ContestedAddress").set_meta("interaction_kind", "contested_address")
 	_add_interaction_point("WarehouseEntrance", Vector3(13.0, 1.0, -8.0), "enter the warehouse")
+	get_node("WarehouseEntrance").set_meta("interaction_kind", "route_terminal")
+	_add_interaction_point("PackageStation", Vector3(16.0, 1.0, -8.0), "scan the assigned package")
+	get_node("PackageStation").set_meta("interaction_kind", "package_station")
+	_add_interaction_point("DeliveryStop", Vector3(-12.0, 1.0, -6.1), "check the delivery address")
+	delivery_point = get_node("DeliveryStop") as Marker3D
+	delivery_point.set_meta("interaction_kind", "delivery_stop")
 	for x in range(-2, 3):
 		_add_static_box("TrafficBarrier_%s" % x, Vector3(float(x) * 2.2 + 16.0, 0.35, 8.0), Vector3(1.4, 0.7, 0.34), Color("dc762c"))
 
@@ -96,20 +118,22 @@ func _build_warehouse() -> void:
 	_add_mesh_box("WarehouseSign", Vector3(13.0, 5.1, -9.82), Vector3(6.0, 0.9, 0.18), Color("274d68"))
 
 func _build_minivan() -> void:
-	_add_static_box("ParkedVehicle", Vector3(-5.0, 0.65, -2.0), Vector3(2.15, 1.15, 4.6), Color("315f7c"))
-	_add_mesh_box("VanCabin", Vector3(-5.0, 1.35, -1.55), Vector3(2.0, 0.85, 2.55), Color("3b7090"))
-	_add_mesh_box("VanWindshield", Vector3(-5.0, 1.48, -0.25), Vector3(1.75, 0.58, 0.08), Color("6d9cac"), Vector3(14.0, 0.0, 0.0))
-	_add_mesh_box("VanSideWindow", Vector3(-6.02, 1.48, -1.2), Vector3(0.08, 0.55, 1.25), Color("668d99"))
-	for wheel_z in [-3.35, -0.7]:
-		_add_mesh_cylinder("VanWheelL", Vector3(-6.1, 0.45, wheel_z), 0.42, 0.22, Color("17191b"), Vector3(0.0, 0.0, 90.0))
-		_add_mesh_cylinder("VanWheelR", Vector3(-3.9, 0.45, wheel_z), 0.42, 0.22, Color("17191b"), Vector3(0.0, 0.0, 90.0))
+	var van := VehicleController.new() as PackagePeddlerVehicle
+	van.name = "ParkedVehicle"
+	van.configure("Parcel Finch", Color("315f7c"), 1.0)
+	van.position = Vector3(-5.0, 0.05, -2.0)
+	van.driving_status_changed.connect(_show_status)
+	add_child(van)
+	vehicles.append(van)
 
 func _build_second_vehicle() -> void:
-	_add_static_box("CargoComet", Vector3(-9.0, 0.58, -2.0), Vector3(1.9, 1.0, 3.7), Color("bd5c35"))
-	_add_mesh_box("CometCabin", Vector3(-9.0, 1.2, -1.75), Vector3(1.75, 0.75, 1.9), Color("d07043"))
-	for wheel_z in [-3.05, -0.85]:
-		_add_mesh_cylinder("CometWheelL", Vector3(-9.98, 0.4, wheel_z), 0.36, 0.2, Color("17191b"), Vector3(0.0, 0.0, 90.0))
-		_add_mesh_cylinder("CometWheelR", Vector3(-8.02, 0.4, wheel_z), 0.36, 0.2, Color("17191b"), Vector3(0.0, 0.0, 90.0))
+	var comet := VehicleController.new() as PackagePeddlerVehicle
+	comet.name = "CargoComet"
+	comet.configure("Cargo Comet", Color("bd5c35"), 0.88)
+	comet.position = Vector3(-9.0, 0.05, -2.0)
+	comet.driving_status_changed.connect(_show_status)
+	add_child(comet)
+	vehicles.append(comet)
 
 func _build_rival_courier() -> void:
 	_add_mesh_cylinder("RivalCourierBody", Vector3(-10.7, 1.05, -5.4), 0.32, 1.35, Color("7b3548"))
@@ -215,6 +239,11 @@ func _build_player() -> void:
 	add_child(player)
 	player.interaction_requested.connect(_on_interaction_requested)
 	player.interaction_target_changed.connect(_on_interaction_target_changed)
+	carried_package = _box_mesh(Vector3(0.62, 0.48, 0.42), Color("9b6b3f"))
+	carried_package.name = "CarriedPackage"
+	carried_package.position = Vector3(0.0, 1.05, -0.48)
+	carried_package.visible = false
+	player.add_child(carried_package)
 
 func _build_hud() -> void:
 	var layer := CanvasLayer.new()
@@ -262,9 +291,22 @@ func _unhandled_input(event: InputEvent) -> void:
 		_handle_modal_input()
 		get_viewport().set_input_as_handled()
 		return
+	if driving and event.is_pressed() and not event.is_echo():
+		if event.is_action_pressed("vehicle_park"):
+			current_vehicle.toggle_park()
+			get_viewport().set_input_as_handled()
+			return
+		if event.is_action_pressed("interact"):
+			_attempt_vehicle_exit()
+			get_viewport().set_input_as_handled()
+			return
 	if event.is_action_pressed("pause") and not event.is_echo():
 		_toggle_pause()
 		get_viewport().set_input_as_handled()
+
+func _process(_delta: float) -> void:
+	if current_vehicle and vehicle_door_point:
+		vehicle_door_point.global_position = current_vehicle.door_world_position()
 
 func _toggle_pause() -> void:
 	get_tree().paused = not get_tree().paused
@@ -276,10 +318,20 @@ func _on_interaction_target_changed(target: Node3D) -> void:
 
 func _on_interaction_requested(target: Node3D) -> void:
 	match String(target.get_meta("interaction_kind", "")):
+		"driver_select":
+			_open_driver_menu()
 		"vehicle_swap":
 			_open_vehicle_menu()
+		"vehicle_access":
+			_handle_vehicle_access()
+		"route_terminal":
+			_open_route_menu()
+		"package_station":
+			_handle_package_station()
+		"delivery_stop":
+			_handle_delivery_stop()
 		"contested_address":
-			_open_encounter_menu()
+			_show_status("The rival-courier encounter is disabled during the ordinary first-delivery test route.")
 		_:
 			_show_status("Context interaction accepted: %s" % String(target.get_meta("interaction_text", "interact")))
 
@@ -288,6 +340,22 @@ func _open_vehicle_menu() -> void:
 	modal_panel.visible = true
 	player.set_controls_enabled(false)
 	modal_label.text = "VEHICLE SWAP - currently: %s\n\n[1 / X] Parcel Finch - roomy blue delivery van\n[2 / Y] Cargo Comet - nimble orange compact\n\n[Q / B] Cancel and keep current vehicle" % gameplay_state.selected_vehicle
+
+func _open_driver_menu() -> void:
+	active_modal = "driver"
+	modal_panel.visible = true
+	player.set_controls_enabled(false)
+	modal_label.text = "CHOOSE YOUR COURIER - currently: %s\n\n[1 / X] Owner Courier - fictionalized likeness profile\n[2 / Y] Maya Brooks\n[3 / A] Jordan Reed\n[4 / B] Alex Rivera\n\n[Q] Keep current driver" % gameplay_state.selected_driver
+
+func _open_route_menu() -> void:
+	if gameplay_state.route_phase != "NO_ROUTE":
+		_show_status("Active route %s | Phase: %s" % [gameplay_state.route_id, gameplay_state.route_phase])
+		return
+	active_modal = "route"
+	modal_panel.visible = true
+	player.set_controls_enabled(false)
+	var offer: Dictionary = GameplayState.ROUTE_OFFER
+	modal_label.text = "WAREHOUSE ROUTE OFFER\n%s - %d stop / 1 package\n%.1f miles | %d minutes | $%d payout\n\n[1 / X] Accept route\n[Q] Decline with no changes" % [offer.area, offer.stops, offer.miles, offer.estimated_minutes, offer.payout]
 
 func _open_encounter_menu() -> void:
 	if gameplay_state.encounter_resolved:
@@ -306,6 +374,20 @@ func _handle_modal_input() -> void:
 		_close_modal("Choice cancelled; no state changed.")
 		return
 	match active_modal:
+		"route":
+			if Input.is_action_just_pressed("choice_one"):
+				var result := gameplay_state.accept_route()
+				gameplay_state.save_game()
+				_close_modal("%s Go to the package station." % result.message)
+		"driver":
+			if Input.is_action_just_pressed("choice_one"):
+				_choose_driver(0)
+			elif Input.is_action_just_pressed("choice_two"):
+				_choose_driver(1)
+			elif Input.is_action_just_pressed("choice_three"):
+				_choose_driver(2)
+			elif Input.is_action_just_pressed("choice_four"):
+				_choose_driver(3)
 		"vehicle":
 			if Input.is_action_just_pressed("choice_one"):
 				_choose_vehicle(0)
@@ -347,9 +429,135 @@ func _handle_modal_input() -> void:
 					_update_fight_hud(result.message)
 
 func _choose_vehicle(index: int) -> void:
-	gameplay_state.select_vehicle(index)
+	if not gameplay_state.select_vehicle(index):
+		return
+	_select_runtime_vehicle(index)
 	gameplay_state.save_game()
-	_close_modal("Vehicle selected and saved: %s" % gameplay_state.selected_vehicle)
+	_close_modal("Vehicle selected: %s. Walk to its driver door, then press E / A twice to enter." % gameplay_state.selected_vehicle)
+
+func _choose_driver(index: int) -> void:
+	if not gameplay_state.select_driver(index):
+		return
+	player.set_driver_variant(index)
+	gameplay_state.save_game()
+	_close_modal("Driver selected and saved: %s" % gameplay_state.selected_driver)
+
+func _apply_saved_driver() -> void:
+	var index := GameplayState.DRIVERS.find(gameplay_state.selected_driver)
+	player.set_driver_variant(maxi(index, 0))
+
+func _select_runtime_vehicle(index: int) -> void:
+	if vehicles.is_empty():
+		return
+	var safe_index := clampi(index, 0, vehicles.size() - 1)
+	current_vehicle = vehicles[safe_index]
+	for vehicle in vehicles:
+		vehicle.set_meta("selected", vehicle == current_vehicle)
+	if vehicle_door_point:
+		vehicle_door_point.global_position = current_vehicle.door_world_position()
+		vehicle_door_point.set_meta("interaction_text", "open the %s driver door" % current_vehicle.display_name)
+	if gameplay_state.vehicle_position.length() > 0.5:
+		current_vehicle.global_position = gameplay_state.vehicle_position
+		current_vehicle.rotation.y = gameplay_state.vehicle_rotation_y
+
+func _handle_package_station() -> void:
+	var result: Dictionary
+	if gameplay_state.route_phase == "ROUTE_ACCEPTED":
+		result = gameplay_state.scan_package(GameplayState.PACKAGE_TRACKING)
+	elif gameplay_state.route_phase == "SCANNING":
+		result = gameplay_state.load_package()
+	else:
+		_show_status("Package station unavailable in phase: %s" % gameplay_state.route_phase)
+		return
+	gameplay_state.save_game()
+	_show_status(result.message + (" Press E / A again to load it." if gameplay_state.route_phase == "SCANNING" else " Enter the selected vehicle and depart."))
+
+func _handle_delivery_stop() -> void:
+	var result: Dictionary
+	match gameplay_state.route_phase:
+		"DRIVING":
+			if driving or not current_vehicle.parked or current_vehicle.global_position.distance_to(delivery_point.global_position) > 7.0:
+				_show_status("Park the selected vehicle near the delivery marker and exit before checking the address.")
+				return
+			result = gameplay_state.arrive_at_stop()
+		"PACKAGE_RETRIEVED":
+			result = gameplay_state.place_package()
+			_set_carried_package_visible(false)
+		"PLACED":
+			result = gameplay_state.confirm_delivery()
+		_:
+			_show_status("Delivery action unavailable. Current phase: %s" % gameplay_state.route_phase)
+			return
+	gameplay_state.save_game()
+	if gameplay_state.route_phase == "ROUTE_COMPLETE":
+		_show_status("%s Payout: $%d | Total credits: $%d. Progress saved." % [result.message, result.reward, gameplay_state.credits])
+	else:
+		_show_status(result.message)
+
+func _handle_vehicle_access() -> void:
+	if current_vehicle == null:
+		return
+	if door_waiting_for_close:
+		if gameplay_state.route_phase == "AT_STOP":
+			var retrieval := gameplay_state.retrieve_package()
+			if retrieval.accepted:
+				_set_carried_package_visible(true)
+				gameplay_state.save_game()
+				vehicle_door_point.set_meta("interaction_text", "close the %s driver door" % current_vehicle.display_name)
+				_show_status(retrieval.message + " Press E / A again to close the door, then take it to the porch.")
+				return
+		current_vehicle.set_door_open(false)
+		door_waiting_for_close = false
+		vehicle_door_point.set_meta("interaction_text", "open the %s driver door" % current_vehicle.display_name)
+		_show_status("Driver door closed and latched.")
+		return
+	if not current_vehicle.door_open:
+		current_vehicle.set_door_open(true)
+		vehicle_door_point.set_meta("interaction_text", "enter %s" % current_vehicle.display_name)
+		_show_status("Driver door opened. Press E / A again to enter.")
+		return
+	_enter_vehicle()
+
+func _enter_vehicle() -> void:
+	if current_vehicle == null or not current_vehicle.door_open:
+		return
+	driving = true
+	door_waiting_for_close = false
+	player.set_player_active(false)
+	current_vehicle.set_driving_active(true)
+	current_vehicle.set_door_open(false)
+	if gameplay_state.route_phase == "LOADED":
+		var departure := gameplay_state.depart_route()
+		_show_status(departure.message)
+		gameplay_state.save_game()
+	vehicle_door_point.remove_from_group("interactable")
+	interaction_label.text = ""
+	if gameplay_state.route_phase != "DRIVING":
+		_show_status("Driving %s | P / X: Park/Drive | W/S: throttle/brake/reverse | A/D: steer | Space: brake | E/A: exit when parked" % current_vehicle.display_name)
+
+func _attempt_vehicle_exit() -> void:
+	if current_vehicle == null:
+		return
+	if not current_vehicle.parked or absf(current_vehicle.speed) > 0.1:
+		_show_status("Stop and engage Park before exiting.")
+		return
+	driving = false
+	current_vehicle.set_driving_active(false)
+	current_vehicle.set_door_open(true)
+	door_waiting_for_close = true
+	player.global_position = current_vehicle.exit_position()
+	player.set_player_active(true)
+	gameplay_state.vehicle_position = current_vehicle.global_position
+	gameplay_state.vehicle_rotation_y = current_vehicle.rotation.y
+	gameplay_state.save_game()
+	vehicle_door_point.global_position = current_vehicle.door_world_position()
+	vehicle_door_point.add_to_group("interactable")
+	vehicle_door_point.set_meta("interaction_text", "close the %s driver door" % current_vehicle.display_name)
+	_show_status("Exited %s. Press E / A at the door to close it." % current_vehicle.display_name)
+
+func _set_carried_package_visible(visible_value: bool) -> void:
+	if carried_package:
+		carried_package.visible = visible_value
 
 func _finish_encounter(outcome: String) -> void:
 	var result := gameplay_state.resolve_encounter(outcome)
