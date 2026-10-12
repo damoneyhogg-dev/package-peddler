@@ -12,6 +12,8 @@
 
 ## Character customization
 
+- The driver selector offers four playable drivers: one based on the owner's authorized private likeness references and three original fictional drivers.
+- All four drivers share the same gameplay abilities and controls; driver choice persists through save/reload.
 - Player can select among at least six skin tones.
 - Shirt, pants, and high-visibility vest colors are independently selectable.
 - At least three visibly different vest styles are available.
@@ -20,8 +22,9 @@
 
 ## Vehicle
 
-- **Vertical-slice foundation complete:** a depot-side proximity prompt opens a two-option fictional vehicle selector (Parcel Finch / Cargo Comet), supports explicit selection or cancellation, gives visible confirmation, and persists the selected option across reload. This is a selection foundation, not drivable vehicle swapping.
-- Proximity and door-side entry gate.
+- **One-delivery foundation complete:** a depot-side proximity prompt selects Parcel Finch or Cargo Comet; only the selected vehicle's door is enterable. Both vehicles have an animated driver door, dedicated driving camera, collision, throttle/reverse, steering, service braking, Park/Drive state, and stopped/parked exit protection. Selection and vehicle transform persist.
+- **Provisional limitation:** entry/exit currently changes gameplay state and camera after the door interaction; final full-body transition animation remains outstanding.
+- Proximity and door-side entry gate. **Automated contract passed.**
 - Natural enter/exit transition without teleport visible to the player.
 - Analog steering, throttle, and braking.
 - Vehicle cannot be controlled while on foot.
@@ -31,6 +34,7 @@
 
 ## Warehouse and packages
 
+- **One-delivery foundation complete:** the Willowbrook route must be accepted, its unique package scanned exactly once, then loaded before departure. Wrong and duplicate scans and out-of-order actions are rejected by the domain state machine.
 - Route cannot start until accepted packages are scanned and loaded.
 - Each fictional package has one tracking ID, stop, dimensions, weight, and status.
 - Capacity and package placement are enforced.
@@ -45,6 +49,7 @@
 
 ## Deliveries
 
+- **One-delivery foundation complete:** the player can drive the selected vehicle to one fictional residential stop, park and exit, activate the correct address, retrieve the loaded package, carry a visible box prop, place it in the porch zone, confirm it, receive $85 exactly once, and preserve completion through save/reload.
 - Five distinct locations are reachable by driving and walking.
 - At least one apartment stop requires legal parking, correct building and unit identification, exterior stair traversal while carrying the assigned package, and confirmation at the correct door.
 - At least one commercial restaurant stop requires legal parking, entry through the public lobby, a staff-counter handoff, and signature or equivalent confirmation; staff-only areas remain inaccessible.

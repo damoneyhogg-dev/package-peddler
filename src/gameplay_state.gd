@@ -329,11 +329,28 @@ func apply_dictionary(data: Dictionary) -> bool:
 	elif route_id != String(ROUTE_OFFER.route_id):
 		reset_defaults()
 		return false
+	var expected_package_by_phase := {
+		"ROUTE_ACCEPTED": "ASSIGNED",
+		"SCANNING": "SCANNED",
+		"LOADED": "LOADED",
+		"DRIVING": "LOADED",
+		"AT_STOP": "LOADED",
+		"PACKAGE_RETRIEVED": "RETRIEVED",
+		"PLACED": "PLACED",
+		"ROUTE_COMPLETE": "DELIVERED"
+	}
+	if expected_package_by_phase.has(route_phase) and package_status != expected_package_by_phase[route_phase]:
+		reset_defaults()
+		return false
+	if route_phase != "ROUTE_COMPLETE" and (delivery_reward_claimed or delivery_earnings != 0):
+		reset_defaults()
+		return false
 	if route_phase == "ROUTE_COMPLETE":
 		if package_status != "DELIVERED" or stop_status != "DELIVERED":
 			reset_defaults()
 			return false
 		delivery_reward_claimed = true
+		delivery_earnings = int(ROUTE_OFFER.payout)
 	if encounter_resolved:
 		if encounter_outcome not in VALID_OUTCOMES:
 			reset_defaults()

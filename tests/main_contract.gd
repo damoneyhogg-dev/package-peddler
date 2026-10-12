@@ -29,11 +29,15 @@ func _run() -> void:
 	var driver_kiosk := game.get_node_or_null("DriverKiosk")
 	var warehouse_point := game.get_node_or_null("WarehouseEntrance")
 	var contested_point := game.get_node_or_null("ContestedAddress")
+	var package_station := game.get_node_or_null("PackageStation")
+	var delivery_stop := game.get_node_or_null("DeliveryStop")
 	_expect(vehicle_point is Marker3D and vehicle_point.is_in_group("interactable"), "Vehicle interaction anchor is missing")
 	_expect(vehicle_selector is Marker3D and vehicle_selector.is_in_group("interactable"), "Vehicle selector anchor is missing")
 	_expect(driver_kiosk is Marker3D and driver_kiosk.is_in_group("interactable"), "Driver selector anchor is missing")
 	_expect(warehouse_point is Marker3D and warehouse_point.is_in_group("interactable"), "Warehouse interaction anchor is missing")
 	_expect(contested_point is Marker3D and contested_point.is_in_group("interactable"), "Contested-address anchor is missing")
+	_expect(package_station is Marker3D and package_station.is_in_group("interactable"), "Package station anchor is missing")
+	_expect(delivery_stop is Marker3D and delivery_stop.is_in_group("interactable"), "Delivery stop anchor is missing")
 	_expect(vehicle_point.get_meta("interaction_kind") == "vehicle_access", "Vehicle door anchor is not wired to access")
 	_expect(vehicle_selector.get_meta("interaction_kind") == "vehicle_swap", "Vehicle selector is not wired to swap choice")
 	_expect(driver_kiosk.get_meta("interaction_kind") == "driver_select", "Driver kiosk is not wired to driver choice")
@@ -42,6 +46,9 @@ func _run() -> void:
 	game._choose_driver(3)
 	_expect(game.gameplay_state.selected_driver == "Alex Rivera" and game.player.driver_variant == 3, "Fourth driver did not apply to gameplay and runtime character")
 	_expect(contested_point.get_meta("interaction_kind") == "contested_address", "Address anchor is not flagged for its encounter")
+	_expect(warehouse_point.get_meta("interaction_kind") == "route_terminal", "Warehouse entrance is not wired to route selection")
+	_expect(package_station.get_meta("interaction_kind") == "package_station", "Package station is not wired to scan/load")
+	_expect(delivery_stop.get_meta("interaction_kind") == "delivery_stop", "Delivery stop is not wired to placement/confirmation")
 	var starting_vehicle: String = game.gameplay_state.selected_vehicle
 	game._open_vehicle_menu()
 	_expect(game.active_modal == "vehicle" and game.modal_panel.visible, "Vehicle choice UI did not open")
@@ -75,7 +82,7 @@ func _run() -> void:
 		_expect(game.get_node_or_null(environment_name) != null, "3D environment feature is missing: %s" % environment_name)
 
 	if failures.is_empty():
-		print("MAIN_CONTRACT_PASS pause=true contextual_anchors=5 drivers=4 vehicle_cancel=true camera_leak_blocked=true encounter_choices=true world_boundaries=4 environment_features=10")
+		print("MAIN_CONTRACT_PASS pause=true contextual_anchors=8 drivers=4 route_scan_delivery=true vehicle_cancel=true camera_leak_blocked=true encounter_gated=true world_boundaries=4 environment_features=10")
 		quit(0)
 	else:
 		for failure in failures:

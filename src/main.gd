@@ -169,6 +169,16 @@ func _add_interaction_point(point_name: String, position_value: Vector3, action_
 	point.position = position_value
 	point.set_meta("interaction_text", action_text)
 	point.add_to_group("interactable")
+	var label := Label3D.new()
+	label.name = "WorldPrompt"
+	label.text = action_text.to_upper()
+	label.position = Vector3(0.0, 1.25, 0.0)
+	label.font_size = 38
+	label.outline_size = 8
+	label.modulate = Color("f4df91")
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.no_depth_test = true
+	point.add_child(label)
 	add_child(point)
 
 func _add_static_box(label: String, position_value: Vector3, size: Vector3, color: Color, visible := true) -> void:
@@ -433,14 +443,14 @@ func _choose_vehicle(index: int) -> void:
 		return
 	_select_runtime_vehicle(index)
 	gameplay_state.save_game()
-	_close_modal("Vehicle selected: %s. Walk to its driver door, then press E / A twice to enter." % gameplay_state.selected_vehicle)
+	_close_modal("Vehicle selected: %s. Accept the route at the warehouse terminal, then scan and load its package." % gameplay_state.selected_vehicle)
 
 func _choose_driver(index: int) -> void:
 	if not gameplay_state.select_driver(index):
 		return
 	player.set_driver_variant(index)
 	gameplay_state.save_game()
-	_close_modal("Driver selected and saved: %s" % gameplay_state.selected_driver)
+	_close_modal("Driver selected: %s. Choose Parcel Finch or Cargo Comet at the vehicle selector." % gameplay_state.selected_driver)
 
 func _apply_saved_driver() -> void:
 	var index := GameplayState.DRIVERS.find(gameplay_state.selected_driver)

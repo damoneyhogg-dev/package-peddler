@@ -1,6 +1,6 @@
 # Test report
 
-Date: 2026-10-09
+Date: 2026-10-12
 
 ## Environment
 
@@ -19,6 +19,8 @@ Date: 2026-10-09
 - Gameplay state contract: `GAMEPLAY_STATE_CONTRACT_PASS vehicles=2 phases=true peaceful=2 combat_actions=4 win_loss_retreat=true persistence=true validation=true idempotent_reward=true`.
 - Main contract: `MAIN_CONTRACT_PASS pause=true contextual_anchors=5 drivers=4 vehicle_cancel=true camera_leak_blocked=true encounter_choices=true world_boundaries=4 environment_features=10`.
 - Vehicle contract: `VEHICLE_CONTRACT_PASS door_open_close=true enter_exit=true throttle=true steering=true brake=true park=true`.
+- Route/package contract: `ROUTE_PACKAGE_CONTRACT_PASS guards=true scan_once=true load=true retrieve=true placement=true confirmation_atomic=true payout_once=true`.
+- One-delivery end-to-end contract: `ONE_DELIVERY_E2E_CONTRACT_PASS driver=true vehicle=true door=true drive=true park=true route=true scan_load=true retrieve_place_confirm=true reload=true payout_once=true`.
 - Blender export: 26,756 triangles, 53 bones, four materials, and embedded Idle/Walk/Run actions.
 - Off-screen GPU render passed at 1280x720 using Intel UHD Graphics 620 / OpenGL 3.3 Compatibility; idle, walk, and run poses were visually inspected.
 - Thirteen required movement/camera/interaction/retreat input actions exist; physical-device playtesting of the new mappings remains outstanding.
@@ -46,9 +48,10 @@ Date: 2026-10-09
 ## Not yet verified
 
 - Physical gamepad test; existing gamepad checks are simulated contracts only.
+- Owner interactive playthrough of the new vehicle-and-one-delivery loop.
 - Final likeness-quality character, hair, refined clothing geometry, and AnimationTree blend graph.
 - Visual customization screen and rendered vest variants (data foundation only).
-- Foot/hand IK, lifting, carrying, stairs, doors, and vehicle transitions.
-- Refined vehicle suspension, wheel animation, damage, traffic, natural entry/exit body animation, warehouse workflow, five deliveries, and the full economy/persistence model.
+- Foot/hand IK, lifting animations, stairs, and natural full-body vehicle transitions.
+- Refined vehicle suspension, wheel animation, damage, traffic, four additional deliveries, and the full economy model.
 
-The current scene is a playable character-and-environment vertical-slice milestone with a bounded vehicle-choice and contested-address foundation. It is still not the complete five-delivery game: package handling, driving, warehouse workflow, delivery stops, and the full economy remain incomplete.
+The current scene is a playable one-delivery vertical slice with four-driver choice, two vehicle choices, animated doors, basic driving/parking, route acceptance, scan/load/retrieve/place/confirm, and save-safe once-only payout. Package motion is still represented by a carried box prop rather than hand IK, and the project is not yet the complete five-delivery game.
