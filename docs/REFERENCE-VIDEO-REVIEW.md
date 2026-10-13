@@ -1,0 +1,61 @@
+# Private reference-video review
+
+Review date: 2026-10-12
+
+The 26 clips below are owner-supplied private reference media stored outside this repository. Raw video, extracted frames, real people, addresses, plates, signs, labels, brands, and recognizable property layouts are excluded from the game and release packages. Only generalized motion, scale, workflow, camera, road, and environment observations may be used in fictionalized project-owned content.
+
+The short SHA-256 prefix identifies the reviewed local file without copying its private filename into the project.
+
+| Clip | Duration | SHA-256 prefix | Review result |
+|---|---:|---|---|
+| 01 | 1.51 s | `184FCF602054` | Selfie fragment; no courier-workflow detail used. |
+| 02 | 30.77 s | `EF24DC982985` | Grocery/retail interior: public aisles, customer-service area, carts, accessibility traffic, and commercial navigation scale. |
+| 03 | 59.97 s | `0D293FBE1546` | Caves & Caverns map footage; unrelated to Package Peddler and excluded. |
+| 04 | 6.83 s | `45EB876EC8A9` | Active construction: graded soil, dust, earthmoving equipment, roadside utilities, and unfinished pavement. |
+| 05 | 13.80 s | `8F87D3120864` | Warehouse-scale courier reference: relaxed walk, pivot, short acceleration, arm swing, vest/clothing silhouette, package stacks, columns, and open work floor. |
+| 06 | 28.27 s | `47225AB5B779` | Minivan exterior: driver-door and rear-hatch access, driveway/curb scale, residential street width, and cargo-access proportions. |
+| 07 | 17.67 s | `E4BBF76BCE9F` | Complete small-package delivery reference: scan/device pose, one-hand carry, step down from a high-floor van, curb/lawn traversal, porch approach, and low placement. |
+| 08 | 12.27 s | `D727801FDB14` | Loose dog near a driveway; informs stay-in-vehicle, contact-customer, wait, and undeliverable safety paths. |
+| 09 | 23.17 s | `5F180744FE46` | Older compact pickups, neighborhood intersection/driveway scale, curb geometry, and ambient parked-vehicle variety. |
+| 10 | 14.79 s | `2E858E7930A7` | Selfie/whiteboard fragment; no delivery-system detail used. |
+| 11 | 59.97 s | `5FC31DC252CB` | Duplicate Caves & Caverns map footage; unrelated and excluded. |
+| 12 | 5.17 s | `844531FEE80A` | Selfie/whiteboard fragment; no delivery-system detail used. |
+| 13 | 19.47 s | `7B40547A81DB` | Rural two-lane driving, construction transition, shoulders, tree lines, overhead utilities, and approaching work vehicles. |
+| 14 | 4.23 s | `CC58BFECE2CA` | Driver-eye camera reference: wheel/dashboard framing, road horizon, low-speed turn, and mailbox/side-road visibility. |
+| 15 | 6.23 s | `0C83A4CB2203` | High-floor cargo-van side-door entry, step height, hand/foot alignment needs, curbside staging, cone clearance, and pull-away scale. |
+| 16 | 46.53 s | `30CCB6889DE0` | Restaurant/commercial handoff: public counter approach, waiting position, chained pen, and signature confirmation; staff-only space stays inaccessible. |
+| 17 | 20.10 s | `A96E5E1731C8` | Vehicle-service center: car-wash lane, oil/tire/inspection bays, parking circulation, service cost, and downtime reference. |
+| 18 | 42.25 s | `80E8CA016D88` | Side-profile selfie footage; not used for warehouse, vehicle, or delivery flow. |
+| 19 | 16.20 s | `E5962DA14B12` | Resident-only pond/open space: rough grass, restricted access, tree line, and lawful-approach navigation complication. |
+| 20 | 20.97 s | `38F5682C948E` | Gas-station forecourt: pump spacing, convenience-store massing, mixed vehicles, and fueling circulation. |
+| 21 | 28.40 s | `80560F574856` | Route-optimization reference: stop list/order, manual reordering, map path, and warning when a sequence drives past a pending stop. |
+| 22 | 27.50 s | `4A8AC3493AD6` | Apartment delivery: tight shared parking, exterior stair flights, narrow landings, repeated doors, and correct-unit validation. |
+| 23 | 59.97 s | `FDD5CA7051A2` | Duplicate Caves & Caverns map footage; unrelated and excluded. |
+| 24 | 29.63 s | `831C0F71538E` | Minivan cockpit/cargo reference: phone mount, mixed box sizes, dense cargo organization, sightlines, two-lane road scale, and gentle steering changes. |
+| 25 | 18.97 s | `F2D040843BF7` | Step-van/package-truck exterior: wheelbase, cab height, side door, neighborhood intersection clearance, and coexistence with a minivan. |
+| 26 | 59.97 s | `91E6691C6DAF` | Duplicate Caves & Caverns map footage; unrelated and excluded. |
+
+## Incorporated into the current implementation
+
+- Four-driver selection and saved vehicle selection.
+- Animated driver door, basic enter/exit state, chase camera, throttle/reverse, steering, braking, Park/Drive, and collision.
+- Five fictional route records with residential, apartment, restaurant, oversized-package, and unsafe-animal archetypes.
+- Deterministic optimized order, validated manual reordering, backtracking metrics, and active GPS target progression.
+- Five unique package records with scan/load/retrieve/place/proof/confirmation guards.
+- Unsafe-animal wait, contact, undeliverable, and return state paths.
+- Once-only stop payouts, route bonus, gross/expense/net summary, and schema-4 persistence.
+
+## Required physical and presentation work still pending
+
+- Replace the reused delivery marker with five distinct drivable/walkable locations matching the fictionalized archetypes.
+- Build a navigable warehouse interior with route terminal, sorting/scanning area, racks, loading dock, workers, and physical cargo organization.
+- Add AnimationTree blending plus backward/strafe/turn/start/stop, scan, lift, carry, heavy-carry/dolly, set-down, door, full-body vehicle entry/exit, seated-driving, and stair-carry clips.
+- Add foot/hand IK and interaction anchors for van steps, packages, scanners, doors, counters, and porch placement.
+- Tune the vehicle camera and handling from the road/cockpit references; add analog triggers, wheel animation, suspension, cargo access, audio, and physical-controller validation.
+- Add player-facing route-planner/manual-order UI, GPS/minimap guidance, proof-of-delivery capture, correct-door/unit feedback, signature UI, return workflow, and earnings dashboard.
+- Add fictional gas/fuel and service-center interactions after the ordinary five-stop route passes end to end.
+- Measure sustained frame rate and camera behavior on the Intel UHD 620 during a continuous interactive route.
+
+## Missing reference details resolved by design requirements
+
+The footage does not fully show warehouse scanning/loading, rear-cargo loading, proof-of-delivery capture, heavy/dolly handling, apartment stair carry while holding a package, full door close/lock timing, or measured acceleration/braking behavior. These are therefore governed by the acceptance ledger and must be implemented and tested directly rather than guessed from the clips.
