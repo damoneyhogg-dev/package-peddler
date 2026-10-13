@@ -34,7 +34,7 @@
 
 ## Warehouse and packages
 
-- **One-delivery foundation complete:** the Willowbrook route must be accepted, its unique package scanned exactly once, then loaded before departure. Wrong and duplicate scans and out-of-order actions are rejected by the domain state machine.
+- **Five-stop state foundation complete:** the Willowbrook route owns five separate package/stop records. Every unique package must be scanned exactly once, then all five load before departure. Wrong, duplicate, and out-of-order actions are rejected by the domain state machine.
 - Route cannot start until accepted packages are scanned and loaded.
 - Each fictional package has one tracking ID, stop, dimensions, weight, and status.
 - Capacity and package placement are enforced.
@@ -42,14 +42,11 @@
 
 ## Route planning
 
-- The route screen shows every accepted stop, its sequence, and estimated route distance/time before departure.
-- The player can accept an optimized order or manually reorder stops; either choice updates GPS guidance without changing package ownership or creating duplicate delivery credit.
-- The planner calls out obvious backtracking, such as driving past a nearby pending stop and returning later, while still allowing the player's chosen order.
-- Recalculation is deterministic for the same route state and never silently drops a stop.
+- **State/API complete:** the route plan exposes all five accepted stops, sequence, deterministic distance/time estimates, current GPS target, optimized suggestion, manual reorder validation, and a backtracking warning without changing package ownership.
 
 ## Deliveries
 
-- **One-delivery foundation complete:** the player can drive the selected vehicle to one fictional residential stop, park and exit, activate the correct address, retrieve the loaded package, carry a visible box prop, place it in the porch zone, confirm it, receive $85 exactly once, and preserve completion through save/reload.
+- **Five-stop state loop complete:** the guarded route advances residential porch, apartment/correct-unit, restaurant/signature, oversized-safe-placement, and unsafe-animal archetypes with correct-package retrieval, placement, proof requirements, once-only stop rewards, route completion bonus, and save/reload. Distinct authored locations and their final traversal/interaction visuals remain scene work.
 - Five distinct locations are reachable by driving and walking.
 - At least one apartment stop requires legal parking, correct building and unit identification, exterior stair traversal while carrying the assigned package, and confirmation at the correct door.
 - At least one commercial restaurant stop requires legal parking, entry through the public lobby, a staff-counter handoff, and signature or equivalent confirmation; staff-only areas remain inaccessible.

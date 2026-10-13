@@ -18,6 +18,7 @@ func _run() -> void:
 	_test_combat_actions_and_outcomes()
 	_test_persistence_and_idempotency()
 	_test_save_validation_and_repair()
+	_test_route_save_guards_and_migration()
 	_cleanup_test_save()
 	if failures.is_empty():
 		print("GAMEPLAY_STATE_CONTRACT_PASS drivers=4 vehicles=2 phases=true peaceful=2 combat_actions=4 win_loss_retreat=true persistence=true validation=true idempotent_reward=true")
@@ -113,31 +114,25 @@ func _test_save_validation_and_repair() -> void:
 	_write_json(TEST_SAVE, {"schema_version": 99})
 	var wrong_schema := GameplayState.new()
 	_expect(not wrong_schema.load_game(TEST_SAVE) and wrong_schema.selected_vehicle == "Parcel Finch", "Wrong schema did not fall back safely")
-	_write_json(TEST_SAVE, {
-		"schema_version": GameplayState.SCHEMA_VERSION,
-		"selected_driver": "Unknown Driver",
-		"selected_vehicle": "Unknown Vehicle", "combat_enabled": true,
-		"encounter_resolved": false, "encounter_outcome": "win", "encounter_reward_claimed": true,
-		"credits": -50, "reputation": 99999, "route_minutes": -8,
-		"route_phase": "NO_ROUTE", "route_id": "", "package_status": "ASSIGNED", "stop_status": "PENDING",
-		"delivery_reward_claimed": false, "delivery_earnings": 0,
-		"vehicle_position": [0.0, 0.0, 0.0], "vehicle_rotation_y": 0.0
-	})
+	var repair_data := GameplayState.new().to_dictionary()
+	repair_data.selected_driver = "Unknown Driver"
+	repair_data.selected_vehicle = "Unknown Vehicle"
+	repair_data.encounter_outcome = "win"
+	repair_data.encounter_reward_claimed = true
+	repair_data.credits = -50
+	repair_data.reputation = 99999
+	repair_data.route_minutes = -8
+	_write_json(TEST_SAVE, repair_data)
 	var repaired := GameplayState.new()
 	_expect(repaired.load_game(TEST_SAVE), "Repairable semantic save was rejected")
 	_expect(repaired.selected_driver == "Owner Courier" and repaired.selected_vehicle == "Parcel Finch" and repaired.credits == 0, "Driver/vehicle/credit repair failed")
 	_expect(repaired.reputation == 1000 and repaired.route_minutes == 0, "Numeric clamping failed")
 	_expect(not repaired.encounter_resolved and repaired.encounter_outcome == "" and not repaired.encounter_reward_claimed, "Unresolved encounter invariants were not repaired")
-	_write_json(TEST_SAVE, {
-		"schema_version": GameplayState.SCHEMA_VERSION,
-		"selected_driver": "Owner Courier",
-		"selected_vehicle": "Parcel Finch", "combat_enabled": true,
-		"encounter_resolved": true, "encounter_outcome": "invalid", "encounter_reward_claimed": false,
-		"credits": 50, "reputation": 0, "route_minutes": 0,
-		"route_phase": "NO_ROUTE", "route_id": "", "package_status": "ASSIGNED", "stop_status": "PENDING",
-		"delivery_reward_claimed": false, "delivery_earnings": 0,
-		"vehicle_position": [0.0, 0.0, 0.0], "vehicle_rotation_y": 0.0
-	})
+	var invalid_data := GameplayState.new().to_dictionary()
+	invalid_data.encounter_resolved = true
+	invalid_data.encounter_outcome = "invalid"
+	invalid_data.credits = 50
+	_write_json(TEST_SAVE, invalid_data)
 	var invalid_semantics := GameplayState.new()
 	_expect(not invalid_semantics.load_game(TEST_SAVE) and not invalid_semantics.encounter_resolved and invalid_semantics.credits == 0, "Invalid resolved outcome did not reset safely")
 	var repaired_claim := GameplayState.new()
@@ -146,6 +141,40 @@ func _test_save_validation_and_repair() -> void:
 	settled.encounter_outcome = "left"
 	settled.encounter_reward_claimed = false
 	_expect(repaired_claim.apply_dictionary(settled) and repaired_claim.encounter_reward_claimed, "Resolved reward claim invariant was not repaired")
+
+func _test_route_save_guards_and_migration() -> void:
+	var active := GameplayState.new()
+	active.accept_route()
+	for definition in GameplayState.STOP_DEFINITIONS:
+		active.scan_package(String(definition.tracking_id))
+	active.load_package()
+	active.depart_route()
+	var corrupt := active.to_dictionary()
+	corrupt.packages[GameplayState.PACKAGE_TRACKING].stop_id = "WB-05"
+	var rejected := GameplayState.new()
+	_expect(not rejected.apply_dictionary(corrupt) and rejected.route_phase == "NO_ROUTE", "Corrupt nested package ownership was accepted")
+	var legacy := GameplayState.new().to_dictionary()
+	legacy.schema_version = 3
+	legacy.erase("route_order")
+	legacy.erase("stops")
+	legacy.erase("packages")
+	legacy.erase("active_stop_index")
+	legacy.erase("current_stop_id")
+	legacy.erase("gps_target_id")
+	legacy.erase("gps_target_address")
+	legacy.erase("route_bonus_claimed")
+	legacy.erase("expenses_claimed")
+	legacy.erase("fuel_expense")
+	legacy.erase("maintenance_expense")
+	legacy.erase("penalty_expense")
+	legacy.erase("gross_earnings")
+	legacy.erase("net_earnings")
+	legacy.selected_driver = "Maya Brooks"
+	legacy.credits = 123
+	_write_json(TEST_SAVE, legacy)
+	var migrated := GameplayState.new()
+	_expect(migrated.load_game(TEST_SAVE), "Schema-3 save did not migrate")
+	_expect(migrated.selected_driver == "Maya Brooks" and migrated.credits == 123 and migrated.route_phase == "NO_ROUTE", "Schema migration did not preserve profile/economy safely")
 
 func _write_text(path: String, content: String) -> void:
 	var file := FileAccess.open(path, FileAccess.WRITE)

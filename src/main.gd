@@ -365,7 +365,7 @@ func _open_route_menu() -> void:
 	modal_panel.visible = true
 	player.set_controls_enabled(false)
 	var offer: Dictionary = GameplayState.ROUTE_OFFER
-	modal_label.text = "WAREHOUSE ROUTE OFFER\n%s - %d stop / 1 package\n%.1f miles | %d minutes | $%d payout\n\n[1 / X] Accept route\n[Q] Decline with no changes" % [offer.area, offer.stops, offer.miles, offer.estimated_minutes, offer.payout]
+	modal_label.text = "WAREHOUSE ROUTE OFFER\n%s - %d stops / 5 packages\n%.1f miles | %d minutes | $%d gross payout\nOptimized order available; manual order supported before departure.\n\n[1 / X] Accept route\n[Q] Decline with no changes" % [offer.area, offer.stops, offer.miles, offer.estimated_minutes, offer.payout]
 
 func _open_encounter_menu() -> void:
 	if gameplay_state.encounter_resolved:
@@ -472,15 +472,18 @@ func _select_runtime_vehicle(index: int) -> void:
 
 func _handle_package_station() -> void:
 	var result: Dictionary
-	if gameplay_state.route_phase == "ROUTE_ACCEPTED":
-		result = gameplay_state.scan_package(GameplayState.PACKAGE_TRACKING)
+	if gameplay_state.route_phase in ["ROUTE_ACCEPTED", "SCANNING"] and gameplay_state.next_unscanned_tracking() != "":
+		result = gameplay_state.scan_package(gameplay_state.next_unscanned_tracking())
 	elif gameplay_state.route_phase == "SCANNING":
 		result = gameplay_state.load_package()
 	else:
 		_show_status("Package station unavailable in phase: %s" % gameplay_state.route_phase)
 		return
 	gameplay_state.save_game()
-	_show_status(result.message + (" Press E / A again to load it." if gameplay_state.route_phase == "SCANNING" else " Enter the selected vehicle and depart."))
+	var next_action := " Enter the selected vehicle and depart."
+	if gameplay_state.route_phase == "SCANNING":
+		next_action = " Press E / A again to scan the next package." if gameplay_state.next_unscanned_tracking() != "" else " Press E / A again to load all five packages."
+	_show_status(result.message + next_action)
 
 func _handle_delivery_stop() -> void:
 	var result: Dictionary
@@ -500,7 +503,10 @@ func _handle_delivery_stop() -> void:
 			return
 	gameplay_state.save_game()
 	if gameplay_state.route_phase == "ROUTE_COMPLETE":
-		_show_status("%s Payout: $%d | Total credits: $%d. Progress saved." % [result.message, result.reward, gameplay_state.credits])
+		var summary := gameplay_state.earnings_summary()
+		_show_status("%s Route complete | Gross $%d - Fuel $%d - Maintenance $%d - Penalties $%d = Net $%d. Progress saved." % [result.message, summary.gross, summary.fuel, summary.maintenance, summary.penalties, summary.net])
+	elif gameplay_state.route_phase == "DRIVING":
+		_show_status("%s Next GPS target: %s" % [result.message, gameplay_state.gps_target_address])
 	else:
 		_show_status(result.message)
 
@@ -510,6 +516,13 @@ func _handle_vehicle_access() -> void:
 	if door_waiting_for_close:
 		if gameplay_state.route_phase == "AT_STOP":
 			var retrieval := gameplay_state.retrieve_package()
+			if not retrieval.accepted and gameplay_state.stops.has(gameplay_state.current_stop_id):
+				var active_stop: Dictionary = gameplay_state.stops[gameplay_state.current_stop_id]
+				if String(active_stop.archetype) == "UNSAFE_ANIMAL" and String(active_stop.animal_hazard) == "ACTIVE":
+					var safety := gameplay_state.resolve_stop_complication("wait")
+					gameplay_state.save_game()
+					_show_status(safety.message + " Press E / A again to retrieve the package.")
+					return
 			if retrieval.accepted:
 				_set_carried_package_visible(true)
 				gameplay_state.save_game()
