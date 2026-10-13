@@ -14,6 +14,11 @@ func _run() -> void:
 	var game := scene.instantiate()
 	root.add_child(game)
 	await process_frame
+	game.runtime_save_path = "user://package_peddler_main_contract.json"
+	for suffix in ["", ".tmp", ".bak"]:
+		var test_path: String = game.runtime_save_path + suffix
+		if FileAccess.file_exists(test_path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(test_path))
 
 	_expect(game.pause_label is Label, "Pause notice was not created")
 	_expect(not game.pause_label.visible, "Pause notice starts visible")
@@ -30,14 +35,12 @@ func _run() -> void:
 	var warehouse_point := game.get_node_or_null("WarehouseEntrance")
 	var contested_point := game.get_node_or_null("ContestedAddress")
 	var package_station := game.get_node_or_null("PackageStation")
-	var delivery_stop := game.get_node_or_null("DeliveryStop")
 	_expect(vehicle_point is Marker3D and vehicle_point.is_in_group("interactable"), "Vehicle interaction anchor is missing")
 	_expect(vehicle_selector is Marker3D and vehicle_selector.is_in_group("interactable"), "Vehicle selector anchor is missing")
 	_expect(driver_kiosk is Marker3D and driver_kiosk.is_in_group("interactable"), "Driver selector anchor is missing")
 	_expect(warehouse_point is Marker3D and warehouse_point.is_in_group("interactable"), "Warehouse interaction anchor is missing")
 	_expect(contested_point is Marker3D and contested_point.is_in_group("interactable"), "Contested-address anchor is missing")
 	_expect(package_station is Marker3D and package_station.is_in_group("interactable"), "Package station anchor is missing")
-	_expect(delivery_stop is Marker3D and delivery_stop.is_in_group("interactable"), "Delivery stop anchor is missing")
 	_expect(vehicle_point.get_meta("interaction_kind") == "vehicle_access", "Vehicle door anchor is not wired to access")
 	_expect(vehicle_selector.get_meta("interaction_kind") == "vehicle_swap", "Vehicle selector is not wired to swap choice")
 	_expect(driver_kiosk.get_meta("interaction_kind") == "driver_select", "Driver kiosk is not wired to driver choice")
@@ -48,7 +51,31 @@ func _run() -> void:
 	_expect(contested_point.get_meta("interaction_kind") == "contested_address", "Address anchor is not flagged for its encounter")
 	_expect(warehouse_point.get_meta("interaction_kind") == "route_terminal", "Warehouse entrance is not wired to route selection")
 	_expect(package_station.get_meta("interaction_kind") == "package_station", "Package station is not wired to scan/load")
-	_expect(delivery_stop.get_meta("interaction_kind") == "delivery_stop", "Delivery stop is not wired to placement/confirmation")
+	var unique_stop_ids: Array[String] = []
+	for stop_id in ["WB-01", "WB-02", "WB-03", "WB-04", "WB-05"]:
+		var suffix: String = stop_id.replace("-", "")
+		var arrival := game.get_node_or_null("Stop%sArrival" % suffix)
+		var delivery := game.get_node_or_null("Stop%sDelivery" % suffix)
+		var proof := game.get_node_or_null("Stop%sProof" % suffix)
+		_expect(arrival is Marker3D and arrival.get_meta("interaction_kind") == "stop_arrival", "Arrival anchor missing for %s" % stop_id)
+		_expect(delivery is Marker3D and delivery.get_meta("interaction_kind") == "stop_delivery", "Delivery anchor missing for %s" % stop_id)
+		_expect(proof is Marker3D and proof.get_meta("interaction_kind") == "stop_proof", "Proof anchor missing for %s" % stop_id)
+		_expect(String(arrival.get_meta("stop_id")) == stop_id and String(delivery.get_meta("stop_id")) == stop_id and String(proof.get_meta("stop_id")) == stop_id, "Stop identity mismatch for %s" % stop_id)
+		unique_stop_ids.append(String(arrival.get_meta("stop_id")))
+	_expect(unique_stop_ids.duplicate().size() == 5, "Five unique stop identities were not created")
+	game.gameplay_state = load("res://src/gameplay_state.gd").new()
+	game._open_route_menu()
+	_expect("Accept displayed order" in game.modal_label.text and "manual reorder" in game.modal_label.text, "Player-facing route planner choices are missing")
+	game.route_draft_order.assign(game.MANUAL_STOP_ORDER)
+	game._accept_planned_route(game.route_draft_order)
+	_expect(game.gameplay_state.route_order == game.MANUAL_STOP_ORDER and game.route_hud.text.contains("GPS:"), "Manual route choice or GPS HUD did not apply")
+	for interaction in range(6):
+		game._handle_package_station()
+	_expect(game.gameplay_state.route_phase == "LOADED", "Five-package scan/load UI did not reach LOADED")
+	var wrong_arrival := game.get_node("StopWB01Arrival") as Marker3D
+	game.gameplay_state.depart_route()
+	game._handle_stop_arrival(wrong_arrival)
+	_expect(game.gameplay_state.route_phase == "DRIVING", "Wrong stop interaction advanced route state")
 	var starting_vehicle: String = game.gameplay_state.selected_vehicle
 	game._open_vehicle_menu()
 	_expect(game.active_modal == "vehicle" and game.modal_panel.visible, "Vehicle choice UI did not open")
@@ -73,16 +100,21 @@ func _run() -> void:
 	game._handle_vehicle_access()
 	_expect(not game.current_vehicle.door_open, "Post-exit door interaction did not close the door")
 	game.gameplay_state = load("res://src/gameplay_state.gd").new()
+	game._open_animal_menu()
+	_expect("Wait for customer" in game.modal_label.text and "Contact customer" in game.modal_label.text and "Mark undeliverable" in game.modal_label.text, "Animal safety/return UI choices are missing")
+	game._close_modal("Animal UI contract")
 	game._open_encounter_menu()
 	_expect(game.active_modal == "encounter" and "De-escalate" in game.modal_label.text, "Encounter choices did not open")
 	game._close_modal("Contract close")
 	for boundary_name in ["WorldBoundaryNorth", "WorldBoundarySouth", "WorldBoundaryWest", "WorldBoundaryEast"]:
 		_expect(game.get_node_or_null(boundary_name) is StaticBody3D, "World boundary is missing: %s" % boundary_name)
-	for environment_name in ["RouteRoad", "SidewalkNorth", "Home", "HomeDoor", "Warehouse", "WarehouseDoor", "ParkedVehicle", "CargoComet", "RivalCourierBody", "Hydrant"]:
+	for environment_name in ["RouteRoad", "RouteRoadEast", "RouteRoadSouth", "Home", "ApartmentBuilding", "ApartmentDoorC204", "Restaurant", "RestaurantCounter", "OverlookHome", "DeliveryDolly", "AnimalYardHome", "YardDogBody", "Warehouse", "ParkedVehicle", "CargoComet"]:
 		_expect(game.get_node_or_null(environment_name) != null, "3D environment feature is missing: %s" % environment_name)
 
 	if failures.is_empty():
-		print("MAIN_CONTRACT_PASS pause=true contextual_anchors=8 drivers=4 route_scan_delivery=true vehicle_cancel=true camera_leak_blocked=true encounter_gated=true world_boundaries=4 environment_features=10")
+		if FileAccess.file_exists(game.runtime_save_path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(game.runtime_save_path))
+		print("MAIN_CONTRACT_PASS pause=true stop_anchors=15 unique_stops=5 planner_ui=true gps_hud=true scan_load_ui=true wrong_stop_guard=true drivers=4 vehicles=2 environment_features=15")
 		quit(0)
 	else:
 		for failure in failures:

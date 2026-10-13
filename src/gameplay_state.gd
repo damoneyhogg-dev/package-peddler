@@ -4,7 +4,7 @@ extends RefCounted
 const SAVE_PATH := "user://package_peddler_save.json"
 const VEHICLES := ["Parcel Finch", "Cargo Comet"]
 const DRIVERS := ["Owner Courier", "Maya Brooks", "Jordan Reed", "Alex Rivera"]
-const SCHEMA_VERSION := 4
+const SCHEMA_VERSION := 5
 const VALID_OUTCOMES := ["deescalated", "left", "win", "loss"]
 const ROUTE_OFFER := {
 	"route_id": "WB-FIVE-01",
@@ -63,6 +63,7 @@ var maintenance_expense := 0
 var penalty_expense := 0
 var gross_earnings := 0
 var net_earnings := 0
+var route_start_credits := 0
 var vehicle_position := Vector3.ZERO
 var vehicle_rotation_y := 0.0
 
@@ -100,6 +101,7 @@ func reset_defaults() -> void:
 	penalty_expense = 0
 	gross_earnings = 0
 	net_earnings = 0
+	route_start_credits = 0
 	vehicle_position = Vector3.ZERO
 	vehicle_rotation_y = 0.0
 
@@ -119,6 +121,7 @@ func accept_route() -> Dictionary:
 	if route_phase != "NO_ROUTE":
 		return {"accepted": false, "message": "A route is already active."}
 	route_id = String(ROUTE_OFFER.route_id)
+	route_start_credits = credits
 	route_phase = "ROUTE_ACCEPTED"
 	route_order.assign(OPTIMIZED_STOP_ORDER)
 	stops.clear()
@@ -188,9 +191,9 @@ func route_metrics(order: Array) -> Dictionary:
 	var distance := 0.0
 	for value in order:
 		var stop_id := String(value)
-		if not stops.has(stop_id):
+		var position_data := _canonical_map_position(stop_id)
+		if position_data.is_empty():
 			return {"miles": 0.0, "estimated_minutes": 0, "backtracking_warning": true}
-		var position_data: Array = stops[stop_id].map_position
 		var position := Vector2(float(position_data[0]), float(position_data[1]))
 		distance += previous.distance_to(position)
 		previous = position
@@ -198,6 +201,12 @@ func route_metrics(order: Array) -> Dictionary:
 	var scaled_miles := distance * float(ROUTE_OFFER.miles) / maxf(optimized_distance, 0.001)
 	var minutes := ceili(scaled_miles / float(ROUTE_OFFER.miles) * float(ROUTE_OFFER.estimated_minutes))
 	return {"miles": snappedf(scaled_miles, 0.1), "estimated_minutes": minutes, "backtracking_warning": distance > optimized_distance * 1.1}
+
+func _canonical_map_position(stop_id: String) -> Array:
+	for definition in STOP_DEFINITIONS:
+		if String(definition.stop_id) == stop_id:
+			return definition.map_position
+	return []
 
 func _order_distance(order: Array) -> float:
 	var previous := Vector2.ZERO
@@ -286,6 +295,8 @@ func resolve_stop_complication(action: String) -> Dictionary:
 			stops[current_stop_id] = stop
 			penalty_expense += 10
 			route_phase = "RETURN_PENDING"
+			gps_target_id = "WAREHOUSE_RETURN"
+			gps_target_address = "Willowbrook Distribution Warehouse"
 			_sync_legacy_status()
 			return {"accepted": true, "message": "Stop marked undeliverable. Return the package safely; never confront the animal."}
 		_:
@@ -331,7 +342,7 @@ func place_package(placement_context := "") -> Dictionary:
 		return {"accepted": false, "message": "Retrieve the correct package before placement."}
 	var tracking_id := String(stops[current_stop_id].tracking_id)
 	var stop: Dictionary = stops[current_stop_id]
-	if placement_context != "" and String(placement_context) != String(stop.placement_rule):
+	if String(placement_context) != String(stop.placement_rule):
 		return {"accepted": false, "message": "Invalid placement for this stop; keep doors, walkways, and resident access clear."}
 	var package: Dictionary = packages[tracking_id]
 	if String(package.status) != "RETRIEVED":
@@ -348,7 +359,7 @@ func confirm_delivery(proof_type := "") -> Dictionary:
 	if route_phase != "PLACED" or not stops.has(current_stop_id):
 		return {"accepted": false, "reward": 0, "message": "Placement is required before confirmation."}
 	var stop: Dictionary = stops[current_stop_id]
-	if proof_type != "" and String(proof_type) != String(stop.confirmation):
+	if String(proof_type) != String(stop.confirmation):
 		return {"accepted": false, "reward": 0, "message": "This stop requires %s confirmation." % String(stop.confirmation)}
 	var tracking_id := String(stop.tracking_id)
 	var package: Dictionary = packages[tracking_id]
@@ -551,6 +562,7 @@ func to_dictionary() -> Dictionary:
 		"penalty_expense": penalty_expense,
 		"gross_earnings": gross_earnings,
 		"net_earnings": net_earnings,
+		"route_start_credits": route_start_credits,
 		"vehicle_position": [vehicle_position.x, vehicle_position.y, vehicle_position.z],
 		"vehicle_rotation_y": vehicle_rotation_y
 	}
@@ -582,7 +594,7 @@ func apply_dictionary(data: Dictionary) -> bool:
 	for key in required_types:
 		if not data.has(key) or typeof(data[key]) != required_types[key]:
 			return false
-	for numeric_key in ["schema_version", "credits", "reputation", "route_minutes", "delivery_earnings", "active_stop_index", "fuel_expense", "maintenance_expense", "penalty_expense", "gross_earnings", "net_earnings"]:
+	for numeric_key in ["schema_version", "credits", "reputation", "route_minutes", "delivery_earnings", "active_stop_index", "fuel_expense", "maintenance_expense", "penalty_expense", "gross_earnings", "net_earnings", "route_start_credits"]:
 		if not data.has(numeric_key) or not _is_integer_number(data[numeric_key]):
 			return false
 	if not data.has("vehicle_rotation_y") or typeof(data.vehicle_rotation_y) not in [TYPE_INT, TYPE_FLOAT]:
@@ -613,6 +625,7 @@ func apply_dictionary(data: Dictionary) -> bool:
 	penalty_expense = clampi(int(data.penalty_expense), 0, 1000000000)
 	gross_earnings = clampi(int(data.gross_earnings), 0, 1000000000)
 	net_earnings = clampi(int(data.net_earnings), -1000000000, 1000000000)
+	route_start_credits = clampi(int(data.route_start_credits), 0, 1000000000)
 	active_stop_index = int(data.active_stop_index)
 	current_stop_id = String(data.current_stop_id)
 	gps_target_id = String(data.gps_target_id)
@@ -649,6 +662,7 @@ func apply_dictionary(data: Dictionary) -> bool:
 		penalty_expense = 0
 		gross_earnings = 0
 		net_earnings = 0
+		route_start_credits = 0
 	elif route_id != String(ROUTE_OFFER.route_id):
 		reset_defaults()
 		return false
@@ -667,6 +681,10 @@ func apply_dictionary(data: Dictionary) -> bool:
 		reset_defaults()
 		return false
 	delivery_earnings = gross_earnings
+	var deducted_expenses := fuel_expense + maintenance_expense + penalty_expense if expenses_claimed else 0
+	if route_phase != "NO_ROUTE" and credits != route_start_credits + gross_earnings - deducted_expenses:
+		reset_defaults()
+		return false
 	_sync_legacy_status()
 	if encounter_resolved:
 		if encounter_outcome not in VALID_OUTCOMES:
@@ -693,9 +711,11 @@ func _validate_route_records() -> bool:
 	sorted_expected.sort()
 	if sorted_order != sorted_expected or active_stop_index < 0 or active_stop_index >= route_order.size():
 		return false
-	if current_stop_id != route_order[active_stop_index] or gps_target_id != current_stop_id or not stops.has(current_stop_id):
+	if current_stop_id != route_order[active_stop_index] or not stops.has(current_stop_id):
 		return false
-	if gps_target_address != String(stops[current_stop_id].get("address", "")):
+	if route_phase == "RETURN_PENDING":
+		if gps_target_id != "WAREHOUSE_RETURN" or gps_target_address != "Willowbrook Distribution Warehouse": return false
+	elif gps_target_id != current_stop_id or gps_target_address != String(stops[current_stop_id].get("address", "")):
 		return false
 	var settled_count := 0
 	var calculated_gross := 0
@@ -709,6 +729,16 @@ func _validate_route_records() -> bool:
 		if stop is not Dictionary or package is not Dictionary:
 			return false
 		if String(stop.get("tracking_id", "")) != tracking_id or String(package.get("stop_id", "")) != stop_id:
+			return false
+		if String(stop.get("address", "")) != String(definition.address) or int(stop.get("payout", -1)) != int(definition.payout):
+			return false
+		if not is_equal_approx(float(stop.get("miles", -1.0)), float(definition.miles)) or int(stop.get("minutes", -1)) != int(definition.minutes):
+			return false
+		if String(stop.get("archetype", "")) != String(definition.archetype) or String(stop.get("confirmation", "")) != String(definition.confirmation) or String(stop.get("placement_rule", "")) != String(definition.placement_rule):
+			return false
+		if stop.get("map_position", []) != definition.map_position:
+			return false
+		if String(package.get("dimensions", "")) != String(definition.package_size) or not is_equal_approx(float(package.get("weight_lb", -1.0)), float(definition.weight_lb)) or bool(package.get("heavy_handling_required", false)) != (String(definition.package_size) == "oversized"):
 			return false
 		if String(stop.get("status", "")) not in ["PENDING", "ARRIVED", "DELIVERED", "UNDELIVERABLE", "RETURNED"] or String(package.get("status", "")) not in VALID_PACKAGE_STATUSES:
 			return false
@@ -732,6 +762,15 @@ func _validate_route_records() -> bool:
 	if route_phase == "ROUTE_COMPLETE":
 		calculated_gross += ROUTE_COMPLETION_BONUS
 	if gross_earnings != calculated_gross:
+		return false
+	var animal_status := String(stops["WB-05"].status)
+	var expected_penalty := 10 if animal_status in ["UNDELIVERABLE", "RETURNED"] else 0
+	if penalty_expense != expected_penalty:
+		return false
+	if route_phase == "ROUTE_COMPLETE":
+		if fuel_expense != BASE_FUEL_EXPENSE or maintenance_expense != BASE_MAINTENANCE_EXPENSE:
+			return false
+	elif fuel_expense != 0 or maintenance_expense != 0 or expenses_claimed or net_earnings != 0:
 		return false
 	var active_stop: Dictionary = stops[current_stop_id]
 	var active_package: Dictionary = packages[String(active_stop.tracking_id)]
@@ -796,7 +835,7 @@ func load_game(path := SAVE_PATH) -> bool:
 	var parsed = json.data
 	if parsed is not Dictionary:
 		return false
-	if int(parsed.get("schema_version", -1)) in [2, 3]:
+	if int(parsed.get("schema_version", -1)) in [2, 3, 4]:
 		parsed = _migrate_legacy_schema(parsed)
 	return apply_dictionary(parsed)
 
@@ -823,6 +862,7 @@ func _migrate_legacy_schema(data: Dictionary) -> Dictionary:
 	migrated.penalty_expense = 0
 	migrated.gross_earnings = 0
 	migrated.net_earnings = 0
+	migrated.route_start_credits = 0
 	migrated.vehicle_position = [0.0, 0.0, 0.0]
 	migrated.vehicle_rotation_y = 0.0
 	return migrated

@@ -16,10 +16,10 @@ The current milestone includes:
 - locally authored idle, walk, and run animation clips;
 - a four-driver selector (one fictionalized owner-reference profile and three original fictional couriers);
 - two selectable vehicles with animated driver doors, enter/exit state, chase cameras, and basic driving;
-- one guarded warehouse route with unique-package scanning/loading, vehicle departure, stop arrival, retrieval, placement, confirmation, and once-only payout;
-- a fictionalized 3D neighborhood with a house, road, sidewalks, warehouse, minivan, and street details.
+- one guarded five-stop warehouse route with five-package scanning/loading, optimized or manually edited order, textual GPS, stop-specific placement/proof, returns, earnings, and once-only payouts;
+- a compact fictionalized 3D route with a residential porch, apartment stair approach/unit, restaurant public lobby/counter, oversized safe-placement stop, unsafe-animal yard, warehouse, roads, vehicles, and street details.
 
-The rigged human and neighborhood are functional vertical-slice art, not final likeness-quality or release-quality art. Vehicle access proves door, enter/exit, throttle, braking, steering, and parking state. The first ordinary delivery proves the stateful route/package loop. Vehicle suspension, wheel animation, damage, traffic, full-body entry/exit animation, four additional deliveries, and the full economy are still under development.
+The rigged human and neighborhood are functional vertical-slice art, not final likeness-quality or release-quality art. Vehicle access proves door, enter/exit, throttle, braking, steering, and parking state. Five physically separate destinations and the route/economy loop are now wired, but the GPS is a text HUD, the signature/photo proof actions are prompts rather than rich interfaces, the dolly is a static interaction cue, and the dog is a static safety cue. Vehicle suspension, wheel animation, damage, traffic, full-body entry/exit and package-handling animation remain under development.
 
 ## Run
 
@@ -37,7 +37,7 @@ Open `project.godot` in Godot 4.7.2 and run the project.
 
 The driver selector offers **Owner Courier**, **Maya Brooks**, **Jordan Reed**, and **Alex Rivera**. The owner-reference choice uses only the project-owned fictionalized runtime courier; private reference media is not shipped. At the depot selector, press `1`/controller X for the **Parcel Finch**, `2`/controller Y for the **Cargo Comet**, or `Q` to cancel. At the selected driver door, interact once to open it and again to enter. Stop, engage Park, and interact to exit; interact once more outside to close the door. At the flagged home, interact and choose `1` de-escalate, `2` leave, `3` fight, or `4` toggle combat accessibility. Non-combat resolutions remain available.
 
-First-delivery sequence: choose driver, choose vehicle, accept the Willowbrook route at the warehouse entrance, interact twice at the package station to scan then load, open and enter the selected vehicle, shift to Drive, drive near the porch marker, stop and engage Park, exit, check the address, retrieve the package from the open driver door, close the door, place the package at the porch, and interact once more to confirm the delivery. The $85 payout can be claimed only once and survives save/reload.
+Five-stop sequence: choose driver and vehicle; use the warehouse planner to accept the optimized order or rotate it manually; interact six times at the package station to scan five packages and load them; enter the vehicle and drive to the active GPS curb marker; Park and exit; register arrival; retrieve the correct package from the vehicle; follow the active delivery marker; place using that stop's safe rule; then use the proof marker. Repeat for all five stops. The apartment uses a walkable exterior ramp/stair approach, the restaurant opens into its public counter area, the oversized stop points to a safe zone beside the outward-opening door, and the animal stop offers wait/contact/undeliverable choices. An undeliverable package must return through the warehouse station. Stop rewards, route bonus, expenses, net earnings, and visible carried/placed state survive save/reload.
 
 See `docs/ENGINE-DECISION.md`, `docs/VERTICAL-SLICE.md`, and `docs/ACCEPTANCE-LEDGER.md`.
 
@@ -53,4 +53,4 @@ The test verifies required input actions, the character collider, the camera col
 
 The separate `tests/vehicle_contract.gd` verifies door animation, driving-camera ownership, throttle, steering, braking, Park, and exit state.
 
-`tests/route_package_contract.gd` verifies every route/package transition and once-only payout. `tests/one_delivery_e2e_contract.gd` verifies the complete selected-driver/vehicle/door/drive/park/deliver/save/reload path.
+`tests/route_package_contract.gd` verifies route ordering, five archetypes, explicit placement/proof, animal return paths, and once-only payout. `tests/one_delivery_e2e_contract.gd` verifies all five deliveries, mid-route reload, earnings, and duplicate-payout protection. `tests/five_stop_scene_contract.gd` verifies the 15 identity-bound scene markers, world bounds, apartment ramp, restaurant access, and visible carried/placed reload state.

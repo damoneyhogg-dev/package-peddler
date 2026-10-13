@@ -9,6 +9,7 @@ func _capture() -> void:
 	root.add_child(game)
 	for frame in range(8):
 		await process_frame
+	game._close_modal("GPU capture")
 	game.player.set_physics_process(false)
 	for animation_name in ["Idle", "Walk", "Run"]:
 		game.player.animation_player.play(animation_name)

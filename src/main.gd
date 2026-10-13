@@ -3,6 +3,7 @@ extends Node3D
 const PlayerController = preload("res://src/player_controller.gd")
 const GameplayState = preload("res://src/gameplay_state.gd")
 const VehicleController = preload("res://src/vehicle_controller.gd")
+const MANUAL_STOP_ORDER := ["WB-02", "WB-01", "WB-03", "WB-04", "WB-05"]
 
 var status_label: Label
 var interaction_label: Label
@@ -18,19 +19,27 @@ var vehicle_door_point: Marker3D
 var driving := false
 var door_waiting_for_close := false
 var carried_package: MeshInstance3D
-var delivery_point: Marker3D
+var placed_package: MeshInstance3D
+var stop_arrivals: Dictionary = {}
+var stop_delivery_points: Dictionary = {}
+var stop_proof_points: Dictionary = {}
+var route_hud: Label
+var runtime_save_path := GameplayState.SAVE_PATH
+var route_draft_order: Array[String] = []
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	gameplay_state.load_game()
+	gameplay_state.load_game(runtime_save_path)
 	_build_lighting()
 	_build_neighborhood_vertical_slice()
 	_build_player()
 	_build_hud()
 	_apply_saved_driver()
 	_select_runtime_vehicle(GameplayState.VEHICLES.find(gameplay_state.selected_vehicle))
+	_restore_visible_runtime_state()
 	_show_status("Loaded driver: %s | Vehicle: %s | Credits: %d" % [gameplay_state.selected_driver, gameplay_state.selected_vehicle, gameplay_state.credits])
-	_open_driver_menu()
+	if gameplay_state.route_phase == "NO_ROUTE":
+		_open_driver_menu()
 	print("PACKAGE_PEDDLER_READY character=rigged drivers=4 vehicle_drive=true doors=true environment=vertical_slice")
 
 func _build_lighting() -> void:
@@ -79,6 +88,7 @@ func _build_neighborhood_vertical_slice() -> void:
 	_build_second_vehicle()
 	_build_rival_courier()
 	_build_street_details()
+	_build_five_stop_destinations()
 	_add_static_box("LoadingDock", Vector3(13.0, 0.45, -8.8), Vector3(12.0, 0.9, 2.0), Color("4d555b"))
 	_add_interaction_point("DriverKiosk", Vector3(-11.0, 1.0, -3.2), "choose a courier")
 	get_node("DriverKiosk").set_meta("interaction_kind", "driver_select")
@@ -93,9 +103,6 @@ func _build_neighborhood_vertical_slice() -> void:
 	get_node("WarehouseEntrance").set_meta("interaction_kind", "route_terminal")
 	_add_interaction_point("PackageStation", Vector3(16.0, 1.0, -8.0), "scan the assigned package")
 	get_node("PackageStation").set_meta("interaction_kind", "package_station")
-	_add_interaction_point("DeliveryStop", Vector3(-12.0, 1.0, -6.1), "check the delivery address")
-	delivery_point = get_node("DeliveryStop") as Marker3D
-	delivery_point.set_meta("interaction_kind", "delivery_stop")
 	for x in range(-2, 3):
 		_add_static_box("TrafficBarrier_%s" % x, Vector3(float(x) * 2.2 + 16.0, 0.35, 8.0), Vector3(1.4, 0.7, 0.34), Color("dc762c"))
 
@@ -156,6 +163,75 @@ func _build_street_details() -> void:
 		_add_mesh_box("MailboxPost", Vector3(mailbox_x, 0.55, -2.0), Vector3(0.12, 1.1, 0.12), Color("564b40"))
 		_add_mesh_box("Mailbox", Vector3(mailbox_x, 1.15, -2.0), Vector3(0.65, 0.48, 0.4), Color("30383d"))
 
+func _build_five_stop_destinations() -> void:
+	# Compact fictional route assembled from generalized private-reference cues;
+	# no filmed address, property layout, person, brand, or media is shipped.
+	_add_static_box("RouteRoadEast", Vector3(20.0, 0.0, 12.0), Vector3(10.5, 0.08, 28.0), Color("2f3438"))
+	_add_static_box("RouteRoadSouth", Vector3(0.0, 0.0, 22.0), Vector3(50.0, 0.08, 10.5), Color("2f3438"))
+	_add_static_box("RouteRoadWest", Vector3(-23.0, 0.0, 14.0), Vector3(10.5, 0.08, 20.0), Color("2f3438"))
+	_build_apartment_stop()
+	_build_restaurant_stop()
+	_build_oversized_stop()
+	_build_animal_stop()
+	_add_stop_markers("WB-01", Vector3(-15.0, 1.0, 1.0), Vector3(-12.0, 1.0, -6.1), Vector3(-11.25, 1.0, -6.1), "residential porch")
+	_add_stop_markers("WB-02", Vector3(20.0, 1.0, 2.0), Vector3(24.5, 1.0, 3.4), Vector3(23.7, 0.8, 3.4), "apartment unit C-204")
+	_add_stop_markers("WB-03", Vector3(20.0, 1.0, 15.0), Vector3(27.2, 1.0, 15.0), Vector3(26.2, 1.0, 15.0), "restaurant public counter")
+	_add_stop_markers("WB-04", Vector3(-3.0, 1.0, 22.0), Vector3(-1.4, 1.0, 27.0), Vector3(-0.6, 1.0, 27.0), "oversized safe-placement zone")
+	_add_stop_markers("WB-05", Vector3(-23.0, 1.0, 16.0), Vector3(-28.0, 1.0, 16.0), Vector3(-27.2, 1.0, 16.0), "animal-safety porch")
+
+func _build_apartment_stop() -> void:
+	_add_static_box("ApartmentBuilding", Vector3(29.0, 3.0, 3.5), Vector3(8.0, 6.0, 8.0), Color("a8927a"))
+	_add_mesh_box("ApartmentDoorC204", Vector3(25.0, 2.0, 3.4), Vector3(0.15, 2.2, 1.2), Color("40566b"))
+	for step in range(5):
+		_add_mesh_box("ApartmentStep_%d" % step, Vector3(24.6 - float(step) * 0.42, 0.075 + float(step) * 0.15, 3.4), Vector3(0.48, 0.15 + float(step) * 0.3, 2.0), Color("99958f"))
+	_add_static_ramp("ApartmentStairRamp", Vector3(23.75, 0.38, 3.4), Vector3(2.5, 0.14, 1.8), 17.0)
+	_add_mesh_box("ApartmentUnitPlaque", Vector3(24.9, 2.5, 2.8), Vector3(0.12, 0.38, 0.5), Color("e2d4a2"))
+
+func _build_restaurant_stop() -> void:
+	_add_static_box("Restaurant", Vector3(28.0, 0.0, 15.0), Vector3(7.0, 0.08, 8.0), Color("756c62"))
+	_add_static_box("RestaurantBackWall", Vector3(31.45, 2.2, 15.0), Vector3(0.2, 4.4, 8.0), Color("9f5948"))
+	_add_static_box("RestaurantNorthWall", Vector3(28.0, 2.2, 11.05), Vector3(7.0, 4.4, 0.2), Color("9f5948"))
+	_add_static_box("RestaurantSouthWall", Vector3(28.0, 2.2, 18.95), Vector3(7.0, 4.4, 0.2), Color("9f5948"))
+	_add_static_box("RestaurantFrontLeft", Vector3(24.55, 2.2, 12.0), Vector3(0.2, 4.4, 2.0), Color("9f5948"))
+	_add_static_box("RestaurantFrontRight", Vector3(24.55, 2.2, 18.0), Vector3(0.2, 4.4, 2.0), Color("9f5948"))
+	_add_mesh_box("RestaurantRoof", Vector3(28.0, 4.45, 15.0), Vector3(7.2, 0.2, 8.2), Color("51413a"))
+	_add_mesh_box("RestaurantPublicDoor", Vector3(24.45, 1.2, 15.0), Vector3(0.14, 2.4, 1.4), Color("8fc5d3"))
+	_add_mesh_box("RestaurantCounter", Vector3(26.0, 0.65, 15.0), Vector3(0.8, 1.3, 3.0), Color("574033"))
+	_add_mesh_box("RestaurantSign", Vector3(24.35, 3.2, 15.0), Vector3(0.15, 0.7, 3.8), Color("d6a747"))
+
+func _build_oversized_stop() -> void:
+	_add_static_box("OverlookHome", Vector3(-3.0, 2.0, 30.0), Vector3(9.0, 4.0, 6.0), Color("c6b99c"))
+	_add_mesh_box("OverlookOutwardDoor", Vector3(-3.0, 1.25, 26.95), Vector3(1.4, 2.4, 0.14), Color("6b4235"))
+	_add_mesh_box("SafePlacementOutline", Vector3(-1.4, 0.04, 27.0), Vector3(1.4, 0.03, 1.4), Color("5fbf75"))
+	_add_mesh_box("DeliveryDolly", Vector3(-4.5, 0.65, 26.7), Vector3(0.18, 1.3, 0.75), Color("d29135"), Vector3(0.0, 0.0, -12.0))
+
+func _build_animal_stop() -> void:
+	_add_static_box("AnimalYardHome", Vector3(-31.0, 2.0, 16.0), Vector3(6.0, 4.0, 8.0), Color("b7c0a3"))
+	for fence in [[Vector3(-27.5, 0.65, 12.0), Vector3(0.15, 1.3, 8.0)], [Vector3(-27.5, 0.65, 20.0), Vector3(0.15, 1.3, 8.0)], [Vector3(-31.0, 0.65, 12.0), Vector3(7.0, 1.3, 0.15)], [Vector3(-31.0, 0.65, 20.0), Vector3(7.0, 1.3, 0.15)]]:
+		_add_mesh_box("AnimalYardFence", fence[0], fence[1], Color("6c553d"))
+	_add_mesh_cylinder("YardDogBody", Vector3(-29.5, 0.55, 17.2), 0.35, 0.9, Color("8a5b35"), Vector3(90.0, 0.0, 0.0))
+	_add_mesh_sphere("YardDogHead", Vector3(-29.0, 0.75, 17.2), 0.3, Color("765034"))
+
+func _add_stop_markers(stop_id: String, arrival_position: Vector3, delivery_position: Vector3, proof_position: Vector3, label: String) -> void:
+	var arrival_name := "Stop%sArrival" % stop_id.replace("-", "")
+	_add_interaction_point(arrival_name, arrival_position, "check arrival at %s" % label)
+	var arrival := get_node(arrival_name) as Marker3D
+	arrival.set_meta("interaction_kind", "stop_arrival")
+	arrival.set_meta("stop_id", stop_id)
+	stop_arrivals[stop_id] = arrival
+	var delivery_name := "Stop%sDelivery" % stop_id.replace("-", "")
+	_add_interaction_point(delivery_name, delivery_position, "place the package at %s" % label)
+	var delivery := get_node(delivery_name) as Marker3D
+	delivery.set_meta("interaction_kind", "stop_delivery")
+	delivery.set_meta("stop_id", stop_id)
+	stop_delivery_points[stop_id] = delivery
+	var proof_name := "Stop%sProof" % stop_id.replace("-", "")
+	_add_interaction_point(proof_name, proof_position, "capture proof at %s" % label)
+	var proof := get_node(proof_name) as Marker3D
+	proof.set_meta("interaction_kind", "stop_proof")
+	proof.set_meta("stop_id", stop_id)
+	stop_proof_points[stop_id] = proof
+
 func _add_world_boundaries() -> void:
 	var transparent := Color(0.0, 0.0, 0.0, 0.0)
 	_add_static_box("WorldBoundaryNorth", Vector3(0.0, 0.75, -34.5), Vector3(70.0, 2.0, 1.0), transparent, false)
@@ -187,6 +263,18 @@ func _add_static_box(label: String, position_value: Vector3, size: Vector3, colo
 	body.position = position_value
 	if visible:
 		body.add_child(_box_mesh(size, color))
+	var collision := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	shape.size = size
+	collision.shape = shape
+	body.add_child(collision)
+	add_child(body)
+
+func _add_static_ramp(label: String, position_value: Vector3, size: Vector3, rotation_z_degrees: float) -> void:
+	var body := StaticBody3D.new()
+	body.name = label
+	body.position = position_value
+	body.rotation_degrees.z = rotation_z_degrees
 	var collision := CollisionShape3D.new()
 	var shape := BoxShape3D.new()
 	shape.size = size
@@ -254,6 +342,10 @@ func _build_player() -> void:
 	carried_package.position = Vector3(0.0, 1.05, -0.48)
 	carried_package.visible = false
 	player.add_child(carried_package)
+	placed_package = _box_mesh(Vector3(0.62, 0.48, 0.42), Color("9b6b3f"))
+	placed_package.name = "PlacedPackage"
+	placed_package.visible = false
+	add_child(placed_package)
 
 func _build_hud() -> void:
 	var layer := CanvasLayer.new()
@@ -277,6 +369,12 @@ func _build_hud() -> void:
 	interaction_label.position = Vector2(34.0, 132.0)
 	interaction_label.add_theme_font_size_override("font_size", 18)
 	layer.add_child(interaction_label)
+	route_hud = Label.new()
+	route_hud.position = Vector2(650.0, 24.0)
+	route_hud.size = Vector2(590.0, 126.0)
+	route_hud.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	route_hud.add_theme_font_size_override("font_size", 17)
+	layer.add_child(route_hud)
 	pause_label = Label.new()
 	pause_label.position = Vector2(34.0, 174.0)
 	pause_label.text = "PAUSED\nPress Esc / Menu to resume"
@@ -295,6 +393,46 @@ func _build_hud() -> void:
 	modal_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	modal_label.add_theme_font_size_override("font_size", 19)
 	modal_panel.add_child(modal_label)
+	_update_route_hud()
+
+func _restore_visible_runtime_state() -> void:
+	_set_carried_package_visible(gameplay_state.route_phase == "PACKAGE_RETRIEVED")
+	placed_package.visible = gameplay_state.route_phase == "PLACED"
+	if placed_package.visible and stop_delivery_points.has(gameplay_state.current_stop_id):
+		placed_package.global_position = (stop_delivery_points[gameplay_state.current_stop_id] as Marker3D).global_position + Vector3(0.0, 0.28, 0.0)
+	_update_route_hud()
+
+func _update_route_hud() -> void:
+	if route_hud == null:
+		return
+	if gameplay_state.route_phase == "NO_ROUTE":
+		route_hud.text = "NO ACTIVE ROUTE\nVisit the warehouse terminal"
+		_refresh_stop_markers()
+		return
+	var completed := 0
+	for stop in gameplay_state.stops.values():
+		if String(stop.status) in ["DELIVERED", "RETURNED"]:
+			completed += 1
+	var target := gameplay_state.gps_target_address
+	if gameplay_state.route_phase == "RETURN_PENDING":
+		target = "Willowbrook Distribution Warehouse"
+	route_hud.text = "ROUTE %s | %d/5 settled\nPHASE: %s\nGPS: %s" % [gameplay_state.route_id, completed, gameplay_state.route_phase, target]
+	_refresh_stop_markers()
+
+func _refresh_stop_markers() -> void:
+	for stop_id in stop_arrivals:
+		_set_stop_marker_enabled(stop_arrivals[stop_id], stop_id == gameplay_state.current_stop_id and gameplay_state.route_phase == "DRIVING")
+		_set_stop_marker_enabled(stop_delivery_points[stop_id], stop_id == gameplay_state.current_stop_id and gameplay_state.route_phase in ["AT_STOP", "PACKAGE_RETRIEVED"])
+		_set_stop_marker_enabled(stop_proof_points[stop_id], stop_id == gameplay_state.current_stop_id and gameplay_state.route_phase == "PLACED")
+
+func _set_stop_marker_enabled(marker: Marker3D, enabled: bool) -> void:
+	if enabled:
+		marker.add_to_group("interactable")
+	else:
+		marker.remove_from_group("interactable")
+	var prompt := marker.get_node_or_null("WorldPrompt") as Label3D
+	if prompt:
+		prompt.visible = enabled
 
 func _unhandled_input(event: InputEvent) -> void:
 	if active_modal != "" and event.is_pressed() and not event.is_echo():
@@ -338,8 +476,12 @@ func _on_interaction_requested(target: Node3D) -> void:
 			_open_route_menu()
 		"package_station":
 			_handle_package_station()
-		"delivery_stop":
-			_handle_delivery_stop()
+		"stop_arrival":
+			_handle_stop_arrival(target)
+		"stop_delivery":
+			_handle_stop_delivery(target)
+		"stop_proof":
+			_handle_stop_proof(target)
 		"contested_address":
 			_show_status("The rival-courier encounter is disabled during the ordinary first-delivery test route.")
 		_:
@@ -364,8 +506,23 @@ func _open_route_menu() -> void:
 	active_modal = "route"
 	modal_panel.visible = true
 	player.set_controls_enabled(false)
+	route_draft_order.assign(GameplayState.OPTIMIZED_STOP_ORDER)
+	_render_route_planner()
+
+func _render_route_planner() -> void:
 	var offer: Dictionary = GameplayState.ROUTE_OFFER
-	modal_label.text = "WAREHOUSE ROUTE OFFER\n%s - %d stops / 5 packages\n%.1f miles | %d minutes | $%d gross payout\nOptimized order available; manual order supported before departure.\n\n[1 / X] Accept route\n[Q] Decline with no changes" % [offer.area, offer.stops, offer.miles, offer.estimated_minutes, offer.payout]
+	var metrics := gameplay_state.route_metrics(route_draft_order)
+	var short_order: Array[String] = []
+	for stop_id in route_draft_order:
+		short_order.append(stop_id.trim_prefix("WB-"))
+	var warning := " | BACKTRACKING WARNING" if bool(metrics.backtracking_warning) else " | OPTIMIZED"
+	modal_label.text = "WAREHOUSE ROUTE PLANNER\n%s - %d stops / 5 packages\n%.1f miles | %d minutes | $%d gross%s\nORDER: %s\n\n[1 / X] Accept displayed order\n[2 / Y] Reset optimized\n[3 / A] Move first stop to end (manual reorder)\n[Q] Decline" % [offer.area, offer.stops, metrics.miles, metrics.estimated_minutes, offer.payout, warning, " > ".join(short_order)]
+
+func _open_animal_menu() -> void:
+	active_modal = "animal"
+	modal_panel.visible = true
+	player.set_controls_enabled(false)
+	modal_label.text = "UNSAFE ANIMAL AT ACTIVE STOP\nRemain at the vehicle; never confront the dog.\n\n[1 / X] Wait for customer to secure it\n[2 / Y] Contact customer\n[3 / A] Mark undeliverable and return package\n[Q] Cancel"
 
 func _open_encounter_menu() -> void:
 	if gameplay_state.encounter_resolved:
@@ -386,9 +543,21 @@ func _handle_modal_input() -> void:
 	match active_modal:
 		"route":
 			if Input.is_action_just_pressed("choice_one"):
-				var result := gameplay_state.accept_route()
-				gameplay_state.save_game()
-				_close_modal("%s Go to the package station." % result.message)
+				_accept_planned_route(route_draft_order)
+			elif Input.is_action_just_pressed("choice_two"):
+				route_draft_order.assign(GameplayState.OPTIMIZED_STOP_ORDER)
+				_render_route_planner()
+			elif Input.is_action_just_pressed("choice_three"):
+				var first_stop: String = route_draft_order.pop_front()
+				route_draft_order.append(first_stop)
+				_render_route_planner()
+		"animal":
+			if Input.is_action_just_pressed("choice_one"):
+				_finish_animal_choice("wait")
+			elif Input.is_action_just_pressed("choice_two"):
+				_finish_animal_choice("contact_customer")
+			elif Input.is_action_just_pressed("choice_three"):
+				_finish_animal_choice("undeliverable")
 		"driver":
 			if Input.is_action_just_pressed("choice_one"):
 				_choose_driver(0)
@@ -418,7 +587,7 @@ func _handle_modal_input() -> void:
 					_show_status("Combat is disabled. Choose de-escalate or leave.")
 			elif Input.is_action_just_pressed("choice_four"):
 				gameplay_state.combat_enabled = not gameplay_state.combat_enabled
-				gameplay_state.save_game()
+				_save_game()
 				_open_encounter_menu()
 		"fight":
 			var action := ""
@@ -433,23 +602,40 @@ func _handle_modal_input() -> void:
 			if action != "":
 				var result := gameplay_state.combat_turn(action)
 				if gameplay_state.encounter_resolved:
-					gameplay_state.save_game()
+					_save_game()
 					_close_modal("%s Consequences: %d credits, reputation %d, +%d route minutes." % [result.message, gameplay_state.credits, gameplay_state.reputation, gameplay_state.route_minutes])
 				else:
 					_update_fight_hud(result.message)
+
+func _accept_planned_route(chosen_order: Array) -> void:
+	var result := gameplay_state.accept_route()
+	if result.accepted and chosen_order != GameplayState.OPTIMIZED_STOP_ORDER:
+		result = gameplay_state.reorder_stops(chosen_order)
+	_save_game()
+	_update_route_hud()
+	_close_modal("%s Go to the package station and scan all five packages." % result.message)
+
+func _finish_animal_choice(action: String) -> void:
+	var result := gameplay_state.resolve_stop_complication(action)
+	_save_game()
+	_update_route_hud()
+	if action == "undeliverable" and result.accepted:
+		_close_modal(result.message + " Drive back to the warehouse package station.")
+	else:
+		_close_modal(result.message + " Return to the vehicle door for the correct package.")
 
 func _choose_vehicle(index: int) -> void:
 	if not gameplay_state.select_vehicle(index):
 		return
 	_select_runtime_vehicle(index)
-	gameplay_state.save_game()
+	_save_game()
 	_close_modal("Vehicle selected: %s. Accept the route at the warehouse terminal, then scan and load its package." % gameplay_state.selected_vehicle)
 
 func _choose_driver(index: int) -> void:
 	if not gameplay_state.select_driver(index):
 		return
 	player.set_driver_variant(index)
-	gameplay_state.save_game()
+	_save_game()
 	_close_modal("Driver selected: %s. Choose Parcel Finch or Cargo Comet at the vehicle selector." % gameplay_state.selected_driver)
 
 func _apply_saved_driver() -> void:
@@ -472,62 +658,105 @@ func _select_runtime_vehicle(index: int) -> void:
 
 func _handle_package_station() -> void:
 	var result: Dictionary
-	if gameplay_state.route_phase in ["ROUTE_ACCEPTED", "SCANNING"] and gameplay_state.next_unscanned_tracking() != "":
+	if gameplay_state.route_phase == "RETURN_PENDING":
+		result = gameplay_state.return_package()
+	elif gameplay_state.route_phase in ["ROUTE_ACCEPTED", "SCANNING"] and gameplay_state.next_unscanned_tracking() != "":
 		result = gameplay_state.scan_package(gameplay_state.next_unscanned_tracking())
 	elif gameplay_state.route_phase == "SCANNING":
 		result = gameplay_state.load_package()
 	else:
 		_show_status("Package station unavailable in phase: %s" % gameplay_state.route_phase)
 		return
-	gameplay_state.save_game()
+	_save_game()
+	_update_route_hud()
 	var next_action := " Enter the selected vehicle and depart."
 	if gameplay_state.route_phase == "SCANNING":
 		next_action = " Press E / A again to scan the next package." if gameplay_state.next_unscanned_tracking() != "" else " Press E / A again to load all five packages."
 	_show_status(result.message + next_action)
 
-func _handle_delivery_stop() -> void:
-	var result: Dictionary
-	match gameplay_state.route_phase:
-		"DRIVING":
-			if driving or not current_vehicle.parked or current_vehicle.global_position.distance_to(delivery_point.global_position) > 7.0:
-				_show_status("Park the selected vehicle near the delivery marker and exit before checking the address.")
-				return
-			result = gameplay_state.arrive_at_stop()
-		"PACKAGE_RETRIEVED":
-			result = gameplay_state.place_package()
-			_set_carried_package_visible(false)
-		"PLACED":
-			result = gameplay_state.confirm_delivery()
-		_:
-			_show_status("Delivery action unavailable. Current phase: %s" % gameplay_state.route_phase)
-			return
-	gameplay_state.save_game()
+func _target_matches_active_stop(target: Marker3D) -> bool:
+	var target_stop := String(target.get_meta("stop_id", ""))
+	if target_stop != gameplay_state.current_stop_id:
+		_show_status("Wrong stop or door. GPS target is %s." % gameplay_state.gps_target_address)
+		return false
+	return true
+
+func _handle_stop_arrival(target: Marker3D) -> void:
+	if not _target_matches_active_stop(target):
+		return
+	if gameplay_state.route_phase != "DRIVING":
+		_show_status("Arrival cannot advance during phase %s." % gameplay_state.route_phase)
+		return
+	if driving or not current_vehicle.parked or current_vehicle.global_position.distance_to(target.global_position) > 8.5:
+		_show_status("Park the selected vehicle at the active GPS curb marker and exit first.")
+		return
+	var result := gameplay_state.arrive_at_stop(String(target.get_meta("stop_id")))
+	_save_game()
+	_update_route_hud()
+	var stop: Dictionary = gameplay_state.stops[gameplay_state.current_stop_id]
+	if String(stop.archetype) == "UNSAFE_ANIMAL":
+		_show_status(result.message + " Stay at the vehicle and choose a safe animal response before retrieving it.")
+	else:
+		_show_status(result.message + " Open the vehicle door and retrieve the correct package.")
+
+func _handle_stop_delivery(target: Marker3D) -> void:
+	if not _target_matches_active_stop(target):
+		return
+	if gameplay_state.route_phase == "AT_STOP":
+		var stop: Dictionary = gameplay_state.stops[gameplay_state.current_stop_id]
+		if String(stop.archetype) == "UNSAFE_ANIMAL" and String(stop.animal_hazard) == "ACTIVE":
+			_open_animal_menu()
+		else:
+			_show_status("Retrieve the assigned package from the selected vehicle first.")
+		return
+	if gameplay_state.route_phase != "PACKAGE_RETRIEVED":
+		_show_status("Placement unavailable during phase %s." % gameplay_state.route_phase)
+		return
+	var active_stop: Dictionary = gameplay_state.stops[gameplay_state.current_stop_id]
+	var result := gameplay_state.place_package(String(active_stop.placement_rule))
+	if result.accepted:
+		_set_carried_package_visible(false)
+		placed_package.visible = true
+		placed_package.global_position = target.global_position + Vector3(0.0, 0.28, 0.0)
+	_save_game()
+	_update_route_hud()
+	_show_status(result.message + " Use the nearby proof marker for %s." % String(active_stop.confirmation).replace("_", " ").to_lower())
+
+func _handle_stop_proof(target: Marker3D) -> void:
+	if not _target_matches_active_stop(target):
+		return
+	if gameplay_state.route_phase != "PLACED":
+		_show_status("Place the correct package at this stop before proof/confirmation.")
+		return
+	var active_stop: Dictionary = gameplay_state.stops[gameplay_state.current_stop_id]
+	var result := gameplay_state.confirm_delivery(String(active_stop.confirmation))
+	placed_package.visible = false
+	_save_game()
+	_update_route_hud()
 	if gameplay_state.route_phase == "ROUTE_COMPLETE":
 		var summary := gameplay_state.earnings_summary()
 		_show_status("%s Route complete | Gross $%d - Fuel $%d - Maintenance $%d - Penalties $%d = Net $%d. Progress saved." % [result.message, summary.gross, summary.fuel, summary.maintenance, summary.penalties, summary.net])
-	elif gameplay_state.route_phase == "DRIVING":
-		_show_status("%s Next GPS target: %s" % [result.message, gameplay_state.gps_target_address])
 	else:
-		_show_status(result.message)
+		_show_status("%s Next GPS target: %s" % [result.message, gameplay_state.gps_target_address])
 
 func _handle_vehicle_access() -> void:
 	if current_vehicle == null:
 		return
 	if door_waiting_for_close:
 		if gameplay_state.route_phase == "AT_STOP":
-			var retrieval := gameplay_state.retrieve_package()
-			if not retrieval.accepted and gameplay_state.stops.has(gameplay_state.current_stop_id):
+			if gameplay_state.stops.has(gameplay_state.current_stop_id):
 				var active_stop: Dictionary = gameplay_state.stops[gameplay_state.current_stop_id]
 				if String(active_stop.archetype) == "UNSAFE_ANIMAL" and String(active_stop.animal_hazard) == "ACTIVE":
-					var safety := gameplay_state.resolve_stop_complication("wait")
-					gameplay_state.save_game()
-					_show_status(safety.message + " Press E / A again to retrieve the package.")
+					_open_animal_menu()
 					return
+			var retrieval := gameplay_state.retrieve_package()
 			if retrieval.accepted:
 				_set_carried_package_visible(true)
-				gameplay_state.save_game()
+				_save_game()
 				vehicle_door_point.set_meta("interaction_text", "close the %s driver door" % current_vehicle.display_name)
-				_show_status(retrieval.message + " Press E / A again to close the door, then take it to the porch.")
+				var package: Dictionary = gameplay_state.packages[String(gameplay_state.stops[gameplay_state.current_stop_id].tracking_id)]
+				var handling := " Use the dolly/heavy-carry route." if bool(package.heavy_handling_required) else ""
+				_show_status(retrieval.message + handling + " Press E / A again to close the door, then follow the delivery marker.")
 				return
 		current_vehicle.set_door_open(false)
 		door_waiting_for_close = false
@@ -552,7 +781,7 @@ func _enter_vehicle() -> void:
 	if gameplay_state.route_phase == "LOADED":
 		var departure := gameplay_state.depart_route()
 		_show_status(departure.message)
-		gameplay_state.save_game()
+		_save_game()
 	vehicle_door_point.remove_from_group("interactable")
 	interaction_label.text = ""
 	if gameplay_state.route_phase != "DRIVING":
@@ -572,7 +801,7 @@ func _attempt_vehicle_exit() -> void:
 	player.set_player_active(true)
 	gameplay_state.vehicle_position = current_vehicle.global_position
 	gameplay_state.vehicle_rotation_y = current_vehicle.rotation.y
-	gameplay_state.save_game()
+	_save_game()
 	vehicle_door_point.global_position = current_vehicle.door_world_position()
 	vehicle_door_point.add_to_group("interactable")
 	vehicle_door_point.set_meta("interaction_text", "close the %s driver door" % current_vehicle.display_name)
@@ -584,12 +813,12 @@ func _set_carried_package_visible(visible_value: bool) -> void:
 
 func _finish_encounter(outcome: String) -> void:
 	var result := gameplay_state.resolve_encounter(outcome)
-	gameplay_state.save_game()
+	_save_game()
 	_close_modal("%s Reward: %d credits. Reputation: %d. Route delay: %d min." % [result.message, result.reward, gameplay_state.reputation, gameplay_state.route_minutes])
 
 func _retreat_fight() -> void:
 	var result := gameplay_state.retreat_from_fight()
-	gameplay_state.save_game()
+	_save_game()
 	_close_modal("%s Reputation: %d. Route delay: %d min." % [result.message, gameplay_state.reputation, gameplay_state.route_minutes])
 
 func _update_fight_hud(message: String) -> void:
@@ -605,3 +834,7 @@ func _close_modal(message: String) -> void:
 func _show_status(message: String) -> void:
 	if status_label:
 		status_label.text = message
+	_update_route_hud()
+
+func _save_game() -> bool:
+	return gameplay_state.save_game(runtime_save_path)

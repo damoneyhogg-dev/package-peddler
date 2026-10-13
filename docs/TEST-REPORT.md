@@ -16,11 +16,12 @@ Date: 2026-10-12
 - Headless main-scene startup: exit 0 and `PACKAGE_PEDDLER_READY character=rigged environment=vertical_slice vehicle_swap=true contested_address=true`.
 - Character asset contract: `CHARACTER_ASSET_CONTRACT_PASS rigged=true clips=3`.
 - Controller contract: `CONTROLLER_CONTRACT_PASS actions=13 modal_freeze=true camera_leak_blocked=true partial=1.575 planar=3.600 diagonal=4.200 stopped=0.000 sprint=7.000 recovery=true rigged=true`.
-- Gameplay state contract: `GAMEPLAY_STATE_CONTRACT_PASS vehicles=2 phases=true peaceful=2 combat_actions=4 win_loss_retreat=true persistence=true validation=true idempotent_reward=true`.
-- Main contract: `MAIN_CONTRACT_PASS pause=true contextual_anchors=5 drivers=4 vehicle_cancel=true camera_leak_blocked=true encounter_choices=true world_boundaries=4 environment_features=10`.
+- Gameplay state contract: `GAMEPLAY_STATE_CONTRACT_PASS drivers=4 vehicles=2 phases=true peaceful=2 combat_actions=4 win_loss_retreat=true persistence=true migration=true nested_tamper_rejected=true economy_tamper_rejected=true idempotent_reward=true`.
+- Main contract: `MAIN_CONTRACT_PASS pause=true stop_anchors=15 unique_stops=5 planner_ui=true gps_hud=true scan_load_ui=true wrong_stop_guard=true drivers=4 vehicles=2 environment_features=15`.
 - Vehicle contract: `VEHICLE_CONTRACT_PASS door_open_close=true enter_exit=true throttle=true steering=true brake=true park=true`.
 - Route/package contract: `ROUTE_PACKAGE_CONTRACT_PASS stops=5 archetypes=5 optimized=true reorder=true gps=true guards=true scan_once=true correct_package=true animal_paths=true payout_once=true`.
 - Five-delivery end-to-end contract: `FIVE_DELIVERY_E2E_CONTRACT_PASS stops=5 save_mid_route=true reload=true gross=475 expenses=35 net=440 payout_once=true`.
+- Five-stop scene contract: `FIVE_STOP_SCENE_CONTRACT_PASS anchors=15 bounds=true parking_clear=5 apartment_ramp=true restaurant_access=true signature_ui=true animal_return_ui=true reload_retrieved=true reload_placed=true`.
 - Blender export: 26,756 triangles, 53 bones, four materials, and embedded Idle/Walk/Run actions.
 - Off-screen GPU render passed at 1280x720 using Intel UHD Graphics 620 / OpenGL 3.3 Compatibility; idle, walk, and run poses were visually inspected.
 - Thirteen required movement/camera/interaction/retreat input actions exist; physical-device playtesting of the new mappings remains outstanding.
@@ -51,7 +52,7 @@ Date: 2026-10-12
 - Owner interactive playthrough of the expanded five-stop state loop.
 - Final likeness-quality character, hair, refined clothing geometry, and AnimationTree blend graph.
 - Visual customization screen and rendered vest variants (data foundation only).
-- Foot/hand IK, lifting animations, stairs, and natural full-body vehicle transitions.
-- Five distinct authored stop scenes/traversal, refined vehicle suspension, wheel animation, damage, and traffic.
+- Foot/hand IK, lifting/dolly animations, and natural full-body vehicle transitions.
+- Rich minimap navigation, actual photo/signature interfaces, animated dog/customer response, refined vehicle suspension, wheel animation, damage, and traffic.
 
-The guarded state layer now supports a deterministic five-stop route, five packages, optimized/manual ordering, GPS target progression, archetype-specific requirements, animal wait/contact/undeliverable/return paths, per-stop rewards, route bonus, expenses/net summary, schema migration, and save-safe once-only settlement. The current 3D scene still reuses one physical delivery marker; distinct authored locations, stair/counter traversal, oversized handling animation, and full UI for manual ordering/undeliverable choice remain unfinished.
+The compact 3D scene now connects five distinct destinations to 15 identity-bound arrival/delivery/proof markers. The player-facing flow includes an optimized/manual route planner, five scan prompts plus load, current-target GPS HUD, stop-specific placement/proof prompts, animal safety/return choices, route summary, and carried/placed reload restoration. Automated physics proves the current CharacterBody climbs the apartment approach and enters the restaurant public lobby. Art, proof/signature interfaces, dolly handling, and animal response remain provisional.

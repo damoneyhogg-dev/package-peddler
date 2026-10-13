@@ -46,7 +46,7 @@
 
 ## Deliveries
 
-- **Five-stop state loop complete:** the guarded route advances residential porch, apartment/correct-unit, restaurant/signature, oversized-safe-placement, and unsafe-animal archetypes with correct-package retrieval, placement, proof requirements, once-only stop rewards, route completion bonus, and save/reload. Distinct authored locations and their final traversal/interaction visuals remain scene work.
+- **Five-stop compact scene complete:** the guarded route advances physically separate residential porch, apartment/correct-unit stair approach, restaurant public lobby/signature counter, oversized safe-placement/dolly cue, and unsafe-animal yard. Fifteen identity-bound arrival/delivery/proof markers reject wrong stops; the apartment approach and restaurant access pass automated CharacterBody traversal. Final art and rich interaction animation/UI remain future work.
 - Five distinct locations are reachable by driving and walking.
 - At least one apartment stop requires legal parking, correct building and unit identification, exterior stair traversal while carrying the assigned package, and confirmation at the correct door.
 - At least one commercial restaurant stop requires legal parking, entry through the public lobby, a staff-counter handoff, and signature or equivalent confirmation; staff-only areas remain inaccessible.

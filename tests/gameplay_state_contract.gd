@@ -21,7 +21,7 @@ func _run() -> void:
 	_test_route_save_guards_and_migration()
 	_cleanup_test_save()
 	if failures.is_empty():
-		print("GAMEPLAY_STATE_CONTRACT_PASS drivers=4 vehicles=2 phases=true peaceful=2 combat_actions=4 win_loss_retreat=true persistence=true validation=true idempotent_reward=true")
+		print("GAMEPLAY_STATE_CONTRACT_PASS drivers=4 vehicles=2 phases=true peaceful=2 combat_actions=4 win_loss_retreat=true persistence=true migration=true nested_tamper_rejected=true economy_tamper_rejected=true idempotent_reward=true")
 		quit(0)
 	else:
 		for failure in failures:
@@ -153,6 +153,22 @@ func _test_route_save_guards_and_migration() -> void:
 	corrupt.packages[GameplayState.PACKAGE_TRACKING].stop_id = "WB-05"
 	var rejected := GameplayState.new()
 	_expect(not rejected.apply_dictionary(corrupt) and rejected.route_phase == "NO_ROUTE", "Corrupt nested package ownership was accepted")
+	for field in ["payout", "address", "archetype", "confirmation", "placement_rule"]:
+		var tampered := active.to_dictionary()
+		var stop: Dictionary = tampered.stops["WB-01"]
+		stop[field] = 999 if field == "payout" else "TAMPERED"
+		tampered.stops["WB-01"] = stop
+		var stop_rejected := GameplayState.new()
+		_expect(not stop_rejected.apply_dictionary(tampered), "Tampered canonical stop field was accepted: %s" % field)
+	var package_tamper := active.to_dictionary()
+	package_tamper.packages[GameplayState.PACKAGE_TRACKING].weight_lb = 999.0
+	_expect(not GameplayState.new().apply_dictionary(package_tamper), "Tampered package definition was accepted")
+	var credit_tamper := active.to_dictionary()
+	credit_tamper.credits = int(credit_tamper.credits) + 500
+	_expect(not GameplayState.new().apply_dictionary(credit_tamper), "Tampered credits were accepted")
+	var expense_tamper := active.to_dictionary()
+	expense_tamper.fuel_expense = 999
+	_expect(not GameplayState.new().apply_dictionary(expense_tamper), "Tampered active-route expenses were accepted")
 	var legacy := GameplayState.new().to_dictionary()
 	legacy.schema_version = 3
 	legacy.erase("route_order")
