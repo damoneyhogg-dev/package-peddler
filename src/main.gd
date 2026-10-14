@@ -662,6 +662,8 @@ func _handle_package_station() -> void:
 		result = gameplay_state.return_package()
 	elif gameplay_state.route_phase in ["ROUTE_ACCEPTED", "SCANNING"] and gameplay_state.next_unscanned_tracking() != "":
 		result = gameplay_state.scan_package(gameplay_state.next_unscanned_tracking())
+		if bool(result.get("accepted", false)):
+			player.play_interaction_presentation("scan")
 	elif gameplay_state.route_phase == "SCANNING":
 		result = gameplay_state.load_package()
 	else:
@@ -715,6 +717,7 @@ func _handle_stop_delivery(target: Marker3D) -> void:
 	var active_stop: Dictionary = gameplay_state.stops[gameplay_state.current_stop_id]
 	var result := gameplay_state.place_package(String(active_stop.placement_rule))
 	if result.accepted:
+		player.play_interaction_presentation("place")
 		_set_carried_package_visible(false)
 		placed_package.visible = true
 		placed_package.global_position = target.global_position + Vector3(0.0, 0.28, 0.0)
@@ -778,6 +781,7 @@ func _enter_vehicle() -> void:
 	player.set_player_active(false)
 	current_vehicle.set_driving_active(true)
 	current_vehicle.set_door_open(false)
+	player.begin_vehicle_transition("vehicle_enter", current_vehicle)
 	if gameplay_state.route_phase == "LOADED":
 		var departure := gameplay_state.depart_route()
 		_show_status(departure.message)
@@ -799,6 +803,7 @@ func _attempt_vehicle_exit() -> void:
 	door_waiting_for_close = true
 	player.global_position = current_vehicle.exit_position()
 	player.set_player_active(true)
+	player.begin_vehicle_transition("vehicle_exit", current_vehicle)
 	gameplay_state.vehicle_position = current_vehicle.global_position
 	gameplay_state.vehicle_rotation_y = current_vehicle.rotation.y
 	_save_game()
@@ -810,6 +815,8 @@ func _attempt_vehicle_exit() -> void:
 func _set_carried_package_visible(visible_value: bool) -> void:
 	if carried_package:
 		carried_package.visible = visible_value
+	if visible_value and player:
+		player.play_interaction_presentation("carry")
 
 func _finish_encounter(outcome: String) -> void:
 	var result := gameplay_state.resolve_encounter(outcome)
