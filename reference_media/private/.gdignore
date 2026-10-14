@@ -1,0 +1,2 @@
+# Prevent Godot from importing owner-provided private reference media.
+# These files are reference-only and must never enter runtime resources or exports.

@@ -5,3 +5,5 @@ builds/
 *.tmp
 *.log
 references/private-video-frames/
+reference_media/private/*
+!reference_media/private/.gdignore
