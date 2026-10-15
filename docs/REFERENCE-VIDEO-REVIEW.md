@@ -2,7 +2,7 @@
 
 Review date: 2026-10-14
 
-The 31 clips below are owner-supplied private reference media stored outside this repository. Raw video, extracted frames, real people, addresses, plates, signs, labels, brands, and recognizable property layouts are excluded from the game and release packages. Only generalized motion, scale, workflow, camera, road, and environment observations may be used in fictionalized project-owned content.
+The 32 clips below are owner-supplied private reference media stored outside this repository. Raw video, extracted frames, real people, addresses, plates, signs, labels, brands, and recognizable property layouts are excluded from the game and release packages. Only generalized motion, scale, workflow, camera, road, and environment observations may be used in fictionalized project-owned content.
 
 The short SHA-256 prefix identifies the reviewed local file without copying its private filename into the project.
 
@@ -39,6 +39,7 @@ The short SHA-256 prefix identifies the reviewed local file without copying its 
 | 29 | 17.90 s | `2E3413E0C6AD` | Warehouse cargo-van loading: dense mixed-size package arrangement, rear-versus-side access, floor-height pickup, bend/reach posture, interior partition clearance, and placing packages deeper into the cargo bay. Real labels, branding, people, and vehicle details are excluded. |
 | 30 | 22.23 s | `AC87C658BB96` | Warehouse flow/layout: mixed package staging, taped floor zones and travel lanes, conveyor/sort tables, rolling bins, pallet mats, indoor van parking/loading lanes, and broad circulation space. Real company layouts, labels, people, and vehicle branding are excluded. |
 | 31 | 15.10 s | `4FFCE34A6990` | Passenger-side seated-driving reference: relaxed torso posture, left-hand steering contact, right-hand reach to the center controls/selector, hand return to the wheel, modest steering input, forward sightline, and driver/console/wheel scale. The real person, vehicle interior, road, and passing vehicles are excluded. |
+| 32 | 5.07 s | `CBFDB19347F0` | Divided-highway/work-zone reference: concrete median barriers, temporary orange lane delineators, opposing traffic, tree-lined roadside screening, and a multi-level vehicle transporter. Use only as a fictionalized post-core roadway/traffic detail; real vehicles, plates, road geometry, and location are excluded. |
 
 ## Incorporated into the current implementation
 
@@ -52,6 +53,7 @@ The short SHA-256 prefix identifies the reviewed local file without copying its 
 - Warehouse/cargo design requirements now include both rear-door bulk loading and side-door retrieval, dense mixed-size package organization, and clear walking/reach zones informed by Clip 29.
 - Warehouse environment requirements now include fictionalized color-coded staging lanes, conveyor/sort tables, rolling bins, palletized staging, indoor van lanes, and unobstructed circulation informed by Clip 30.
 - Seated-driving presentation requirements now include stable torso posture, hand contact on the wheel, a short center-control/selector reach, hand return, and modest steering motion informed by Clip 31.
+- Post-core environment backlog now includes a fictional divided-highway segment with concrete work-zone barriers, temporary lane delineators, opposing traffic, and an occasional vehicle transporter informed by Clip 32. It does not expand the current compact five-stop milestone.
 
 ## Required physical and presentation work still pending
 
