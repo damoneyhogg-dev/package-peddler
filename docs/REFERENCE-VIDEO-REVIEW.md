@@ -1,8 +1,8 @@
 # Private reference-video review
 
-Review date: 2026-10-12
+Review date: 2026-10-14
 
-The 26 clips below are owner-supplied private reference media stored outside this repository. Raw video, extracted frames, real people, addresses, plates, signs, labels, brands, and recognizable property layouts are excluded from the game and release packages. Only generalized motion, scale, workflow, camera, road, and environment observations may be used in fictionalized project-owned content.
+The 31 clips below are owner-supplied private reference media stored outside this repository. Raw video, extracted frames, real people, addresses, plates, signs, labels, brands, and recognizable property layouts are excluded from the game and release packages. Only generalized motion, scale, workflow, camera, road, and environment observations may be used in fictionalized project-owned content.
 
 The short SHA-256 prefix identifies the reviewed local file without copying its private filename into the project.
 
@@ -34,28 +34,36 @@ The short SHA-256 prefix identifies the reviewed local file without copying its 
 | 24 | 29.63 s | `831C0F71538E` | Minivan cockpit/cargo reference: phone mount, mixed box sizes, dense cargo organization, sightlines, two-lane road scale, and gentle steering changes. |
 | 25 | 18.97 s | `F2D040843BF7` | Step-van/package-truck exterior: wheelbase, cab height, side door, neighborhood intersection clearance, and coexistence with a minivan. |
 | 26 | 59.97 s | `91E6691C6DAF` | Duplicate Caves & Caverns map footage; unrelated and excluded. |
+| 27 | 28.40 s | `C34E9223FA6C` | Additional route-optimization reference: compare assigned and optimized maps, expose backtracking/passed-stop risk, and allow manual reordering before departure. No real app UI or route data will be copied. |
+| 28 | 20.70 s | `6DA903EA8638` | Full-body minivan driver-door transition: seated body pivot, foot placement onto pavement, standing clearance beside the open door, door close, short walk-away, return approach, and re-entry scale. |
+| 29 | 17.90 s | `2E3413E0C6AD` | Warehouse cargo-van loading: dense mixed-size package arrangement, rear-versus-side access, floor-height pickup, bend/reach posture, interior partition clearance, and placing packages deeper into the cargo bay. Real labels, branding, people, and vehicle details are excluded. |
+| 30 | 22.23 s | `AC87C658BB96` | Warehouse flow/layout: mixed package staging, taped floor zones and travel lanes, conveyor/sort tables, rolling bins, pallet mats, indoor van parking/loading lanes, and broad circulation space. Real company layouts, labels, people, and vehicle branding are excluded. |
+| 31 | 15.10 s | `4FFCE34A6990` | Passenger-side seated-driving reference: relaxed torso posture, left-hand steering contact, right-hand reach to the center controls/selector, hand return to the wheel, modest steering input, forward sightline, and driver/console/wheel scale. The real person, vehicle interior, road, and passing vehicles are excluded. |
 
 ## Incorporated into the current implementation
 
 - Four-driver selection and saved vehicle selection.
 - Animated driver door, basic enter/exit state, chase camera, throttle/reverse, steering, braking, Park/Drive, and collision.
-- Five fictional route records with residential, apartment, restaurant, oversized-package, and unsafe-animal archetypes.
+- Five fictional route records. Residential porch, apartment, restaurant, unsafe-animal, and route-order behavior draw on Clips 07, 22, 16, 08, and 21. The oversized-package archetype comes from the separately supplied still photograph; its fictional 64-pound design value is not a measured fact from the media.
 - Deterministic optimized order, validated manual reordering, backtracking metrics, and active GPS target progression.
 - Five unique package records with scan/load/retrieve/place/proof/confirmation guards.
 - Unsafe-animal wait, contact, undeliverable, and return state paths.
 - Once-only stop payouts, route bonus, gross/expense/net summary, and schema-4 persistence.
+- Warehouse/cargo design requirements now include both rear-door bulk loading and side-door retrieval, dense mixed-size package organization, and clear walking/reach zones informed by Clip 29.
+- Warehouse environment requirements now include fictionalized color-coded staging lanes, conveyor/sort tables, rolling bins, palletized staging, indoor van lanes, and unobstructed circulation informed by Clip 30.
+- Seated-driving presentation requirements now include stable torso posture, hand contact on the wheel, a short center-control/selector reach, hand return, and modest steering motion informed by Clip 31.
 
 ## Required physical and presentation work still pending
 
-- Replace the reused delivery marker with five distinct drivable/walkable locations matching the fictionalized archetypes.
+- Replace the five compact primitive destinations with authored final-quality environments while preserving their tested stop identities and parking/traversal gates.
 - Build a navigable warehouse interior with route terminal, sorting/scanning area, racks, loading dock, workers, and physical cargo organization.
-- Add AnimationTree blending plus backward/strafe/turn/start/stop, scan, lift, carry, heavy-carry/dolly, set-down, door, full-body vehicle entry/exit, seated-driving, and stair-carry clips.
+- Add AnimationTree blending plus backward/strafe/turn/start/stop, scan, lift, carry, heavy-carry/dolly, set-down, door, full-body vehicle entry/exit informed by Clip 28, seated-driving, and stair-carry clips.
 - Add foot/hand IK and interaction anchors for van steps, packages, scanners, doors, counters, and porch placement.
-- Tune the vehicle camera and handling from the road/cockpit references; add analog triggers, wheel animation, suspension, cargo access, audio, and physical-controller validation.
-- Add player-facing route-planner/manual-order UI, GPS/minimap guidance, proof-of-delivery capture, correct-door/unit feedback, signature UI, return workflow, and earnings dashboard.
+- Tune the vehicle camera and handling from the road/cockpit references; add seated hand-to-wheel alignment from Clip 31, analog triggers, wheel animation, suspension, cargo access, audio, and physical-controller validation.
+- Upgrade the existing rotate/reset/accept route planner, text GPS, prompt-based proof/signature, return flow, and earnings summary into richer interfaces with a minimap and actual proof records.
 - Add fictional gas/fuel and service-center interactions after the ordinary five-stop route passes end to end.
 - Measure sustained frame rate and camera behavior on the Intel UHD 620 during a continuous interactive route.
 
 ## Missing reference details resolved by design requirements
 
-The footage does not fully show warehouse scanning/loading, rear-cargo loading, proof-of-delivery capture, heavy/dolly handling, apartment stair carry while holding a package, full door close/lock timing, or measured acceleration/braking behavior. These are therefore governed by the acceptance ledger and must be implemented and tested directly rather than guessed from the clips.
+The footage now shows useful warehouse cargo loading and organization plus basic seated steering-hand contact and a center-control/selector reach. It still does not fully show scan verification, proof-of-delivery capture, heavy/dolly handling, apartment stair carry while holding a package, full door close/lock timing, or measured acceleration/braking behavior. These are therefore governed by the acceptance ledger and must be implemented and tested directly rather than guessed from the clips.
