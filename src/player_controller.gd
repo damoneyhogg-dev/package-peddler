@@ -389,8 +389,6 @@ func _complete_vehicle_transition() -> void:
 		visible = false
 		if camera:
 			camera.current = false
-		if transition_vehicle and transition_vehicle.vehicle_camera:
-			transition_vehicle.vehicle_camera.current = true
 	else:
 		global_position = transition_door
 		visible = true

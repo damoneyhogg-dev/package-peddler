@@ -1,6 +1,8 @@
 class_name PackagePeddlerVehicle
 extends CharacterBody3D
 
+const COURIER_SCENE: PackedScene = preload("res://assets/characters/courier.glb")
+
 signal driving_status_changed(message: String)
 
 @export var display_name := "Courier Vehicle"
@@ -18,6 +20,18 @@ var parked := true
 var door_open := false
 var door_pivot: Node3D
 var vehicle_camera: Camera3D
+var steering_wheel: Node3D
+var center_selector: MeshInstance3D
+var seated_driver: Node3D
+var seated_driver_skeleton: Skeleton3D
+var seated_driver_animation: AnimationPlayer
+var driver_pose_bases: Dictionary = {}
+var driving_presentation_kind := ""
+var driving_presentation_elapsed := 0.0
+var driving_presentation_duration := 0.78
+var selector_reach_weight := 0.0
+var driver_variant := 0
+var seated_driver_badge: MeshInstance3D
 
 func _ready() -> void:
 	_build_vehicle()
@@ -61,9 +75,137 @@ func _build_vehicle() -> void:
 	vehicle_camera.fov = 70.0
 	vehicle_camera.current = false
 	camera_rig.add_child(vehicle_camera)
+	_build_cockpit_presentation()
+
+func _build_cockpit_presentation() -> void:
+	# Provisional cockpit geometry provides stable authored targets for the
+	# seated-driving pose. It is intentionally original and unbranded.
+	_add_box("DriverSeat", Vector3(-0.48, 0.62, -0.38), Vector3(0.7, 0.7, 0.82), Color("252a2d"))
+	steering_wheel = Node3D.new()
+	steering_wheel.name = "SteeringWheel"
+	steering_wheel.position = Vector3(-0.48, 1.38, -1.43)
+	steering_wheel.rotation_degrees.x = 90.0
+	add_child(steering_wheel)
+	var wheel := MeshInstance3D.new()
+	var wheel_mesh := TorusMesh.new()
+	wheel_mesh.inner_radius = 0.22
+	wheel_mesh.outer_radius = 0.3
+	wheel_mesh.rings = 12
+	wheel_mesh.ring_segments = 20
+	var wheel_material := StandardMaterial3D.new()
+	wheel_material.albedo_color = Color("17191b")
+	wheel_mesh.material = wheel_material
+	wheel.mesh = wheel_mesh
+	steering_wheel.add_child(wheel)
+	var spoke := _box_mesh(Vector3(0.48, 0.055, 0.055), Color("303438"))
+	spoke.name = "WheelSpoke"
+	steering_wheel.add_child(spoke)
+
+	center_selector = _box_mesh(Vector3(0.09, 0.23, 0.09), Color("6f777c"))
+	center_selector.name = "CenterSelector"
+	center_selector.position = Vector3(0.02, 1.02, -0.78)
+	center_selector.rotation_degrees.z = -18.0
+	add_child(center_selector)
+
+	_add_driver_target("LeftHandWheelTarget", Vector3(-0.69, 1.43, -1.39))
+	_add_driver_target("RightHandWheelTarget", Vector3(-0.27, 1.43, -1.39))
+	_add_driver_target("SelectorReachTarget", Vector3(0.02, 1.12, -0.78))
+
+	seated_driver = COURIER_SCENE.instantiate() as Node3D
+	seated_driver.name = "SeatedDriverPresentation"
+	seated_driver.position = Vector3(-0.48, 0.26, -0.33)
+	seated_driver.rotation.y = PI
+	seated_driver.visible = false
+	add_child(seated_driver)
+	seated_driver_badge = _box_mesh(Vector3(0.46, 0.52, 0.045), Color("d8e539"))
+	seated_driver_badge.name = "SeatedDriverVariantBadge"
+	seated_driver_badge.position = Vector3(0.0, 1.28, -0.26)
+	seated_driver.add_child(seated_driver_badge)
+	seated_driver_skeleton = _find_skeleton(seated_driver)
+	seated_driver_animation = _find_animation_player(seated_driver)
+	if seated_driver_animation and seated_driver_animation.has_animation("Idle"):
+		seated_driver_animation.play("Idle")
+		seated_driver_animation.seek(0.08, true)
+		seated_driver_animation.pause()
+	_cache_driver_pose_bases()
+	_apply_seated_driver_pose(0.0, 0.0)
+	set_driver_variant(0)
+
+func set_driver_variant(index: int) -> void:
+	driver_variant = clampi(index, 0, 3)
+	var colors := [Color("d8e539"), Color("d94b62"), Color("3d91d4"), Color("e18a35")]
+	if seated_driver_badge:
+		var material := StandardMaterial3D.new()
+		material.albedo_color = colors[driver_variant]
+		material.roughness = 0.7
+		seated_driver_badge.material_override = material
+	if seated_driver:
+		seated_driver.set_meta("driver_variant", driver_variant)
+	set_meta("driver_variant", driver_variant)
+	_align_cockpit_to_authored_hands()
+
+func _add_driver_target(target_name: String, local_position: Vector3) -> void:
+	var target := Marker3D.new()
+	target.name = target_name
+	target.position = local_position
+	add_child(target)
+
+func _find_skeleton(node: Node) -> Skeleton3D:
+	if node is Skeleton3D:
+		return node as Skeleton3D
+	for child in node.get_children():
+		var found := _find_skeleton(child)
+		if found:
+			return found
+	return null
+
+func _find_animation_player(node: Node) -> AnimationPlayer:
+	if node is AnimationPlayer:
+		return node as AnimationPlayer
+	for child in node.get_children():
+		var found := _find_animation_player(child)
+		if found:
+			return found
+	return null
+
+func _cache_driver_pose_bases() -> void:
+	if seated_driver_skeleton == null:
+		return
+	for bone_name in ["pelvis", "spine_01", "spine_02", "upperarm_l", "upperarm_r", "lowerarm_l", "lowerarm_r", "thigh_l", "thigh_r", "calf_l", "calf_r"]:
+		var index := seated_driver_skeleton.find_bone(bone_name)
+		if index >= 0:
+			driver_pose_bases[bone_name] = seated_driver_skeleton.get_bone_pose_rotation(index)
+
+func _align_cockpit_to_authored_hands() -> void:
+	if seated_driver_skeleton == null:
+		return
+	_apply_seated_driver_pose(0.0, 0.0)
+	var left_hand := _driver_bone_vehicle_position("hand_l")
+	var right_hand := _driver_bone_vehicle_position("hand_r")
+	if left_hand != Vector3.ZERO and right_hand != Vector3.ZERO:
+		var wheel_center := left_hand.lerp(right_hand, 0.5)
+		steering_wheel.position = wheel_center
+		var hand_span := left_hand.distance_to(right_hand)
+		steering_wheel.scale = Vector3.ONE * clampf(hand_span / 0.52, 0.72, 1.35)
+		(get_node("LeftHandWheelTarget") as Marker3D).position = left_hand
+		(get_node("RightHandWheelTarget") as Marker3D).position = right_hand
+	_apply_seated_driver_pose(1.0, 0.0)
+	var reach_hand := _driver_bone_vehicle_position("hand_r")
+	if reach_hand != Vector3.ZERO:
+		center_selector.position = reach_hand + Vector3(0.0, -0.08, 0.0)
+		(get_node("SelectorReachTarget") as Marker3D).position = reach_hand
+	_apply_seated_driver_pose(0.0, 0.0)
+
+func _driver_bone_vehicle_position(bone_name: String) -> Vector3:
+	var index := seated_driver_skeleton.find_bone(bone_name)
+	if index < 0:
+		return Vector3.ZERO
+	var skeleton_local := seated_driver_skeleton.get_bone_global_pose(index).origin
+	return to_local(seated_driver_skeleton.to_global(skeleton_local))
 
 func _physics_process(delta: float) -> void:
 	door_pivot.rotation.y = move_toward(door_pivot.rotation.y, deg_to_rad(-68.0) if door_open else 0.0, delta * 4.8)
+	_update_driving_presentation(delta)
 	if not driving_active:
 		velocity = Vector3.ZERO
 		return
@@ -85,6 +227,7 @@ func _physics_process(delta: float) -> void:
 	if absf(speed) > 0.08:
 		var direction_sign := signf(speed)
 		rotate_y(-steering * steering_rate * delta * clampf(absf(speed) / 5.0, 0.28, 1.0) * direction_sign)
+	_apply_seated_driver_pose(selector_reach_weight, steering)
 	velocity = -global_transform.basis.z * speed
 	velocity.y = -1.0
 	move_and_slide()
@@ -98,8 +241,13 @@ func set_door_open(open: bool) -> void:
 func set_driving_active(active: bool) -> void:
 	driving_active = active
 	vehicle_camera.current = active
+	if seated_driver:
+		seated_driver.visible = active
 	if not active:
 		speed = 0.0
+		cancel_driving_presentation()
+	else:
+		_apply_seated_driver_pose(0.0, 0.0)
 
 func toggle_park() -> bool:
 	if not parked and absf(speed) > 0.45:
@@ -109,7 +257,65 @@ func toggle_park() -> bool:
 	if parked:
 		speed = 0.0
 	driving_status_changed.emit("%s transmission: %s." % [display_name, "PARK" if parked else "DRIVE"])
+	_start_selector_reach()
 	return true
+
+func _start_selector_reach() -> void:
+	driving_presentation_kind = "selector_reach"
+	driving_presentation_elapsed = 0.0
+	selector_reach_weight = 0.0
+	set_meta("driving_presentation_kind", driving_presentation_kind)
+
+func cancel_driving_presentation() -> void:
+	driving_presentation_kind = ""
+	driving_presentation_elapsed = 0.0
+	selector_reach_weight = 0.0
+	set_meta("driving_presentation_kind", "")
+	if seated_driver_skeleton:
+		_apply_seated_driver_pose(0.0, 0.0)
+
+func _update_driving_presentation(delta: float) -> void:
+	if not driving_active:
+		return
+	if driving_presentation_kind == "selector_reach":
+		driving_presentation_elapsed += delta
+		var progress := clampf(driving_presentation_elapsed / driving_presentation_duration, 0.0, 1.0)
+		selector_reach_weight = sin(PI * progress)
+		if progress >= 1.0:
+			driving_presentation_kind = ""
+			driving_presentation_elapsed = 0.0
+			selector_reach_weight = 0.0
+			set_meta("driving_presentation_kind", "")
+
+func _apply_seated_driver_pose(reach_weight: float, steering_input: float) -> void:
+	if seated_driver_skeleton == null:
+		return
+	var steer := clampf(steering_input, -1.0, 1.0)
+	# Both hands rest at authored wheel targets. During Park/Drive selection the
+	# right arm briefly reaches toward the center control, then returns.
+	_set_driver_bone_rotation("pelvis", Vector3(deg_to_rad(-8.0), 0.0, 0.0))
+	_set_driver_bone_rotation("spine_01", Vector3(deg_to_rad(8.0), 0.0, 0.0))
+	_set_driver_bone_rotation("spine_02", Vector3(deg_to_rad(5.0), deg_to_rad(-5.0 * reach_weight + steer * 2.0), 0.0))
+	_set_driver_bone_rotation("thigh_l", Vector3(deg_to_rad(-72.0), 0.0, deg_to_rad(-4.0)))
+	_set_driver_bone_rotation("thigh_r", Vector3(deg_to_rad(-72.0), 0.0, deg_to_rad(4.0)))
+	_set_driver_bone_rotation("calf_l", Vector3(deg_to_rad(74.0), 0.0, 0.0))
+	_set_driver_bone_rotation("calf_r", Vector3(deg_to_rad(74.0), 0.0, 0.0))
+	_set_driver_bone_rotation("upperarm_l", Vector3(deg_to_rad(-52.0 + steer * 4.0), deg_to_rad(-8.0), deg_to_rad(-18.0)))
+	_set_driver_bone_rotation("lowerarm_l", Vector3(deg_to_rad(86.0), deg_to_rad(-4.0), deg_to_rad(-6.0)))
+	_set_driver_bone_rotation("upperarm_r", Vector3(deg_to_rad(lerpf(-52.0, -38.0, reach_weight) - steer * 4.0), deg_to_rad(lerpf(8.0, -20.0, reach_weight)), deg_to_rad(lerpf(18.0, 7.0, reach_weight))))
+	_set_driver_bone_rotation("lowerarm_r", Vector3(deg_to_rad(lerpf(86.0, 58.0, reach_weight)), deg_to_rad(lerpf(4.0, -18.0, reach_weight)), deg_to_rad(lerpf(6.0, -10.0, reach_weight))))
+	seated_driver_skeleton.force_update_all_bone_transforms()
+	if steering_wheel:
+		steering_wheel.rotation.z = deg_to_rad(-steer * 34.0)
+	set_meta("selector_reach_weight", reach_weight)
+	set_meta("seated_pose_active", driving_active)
+
+func _set_driver_bone_rotation(bone_name: String, authored_euler: Vector3) -> void:
+	var index := seated_driver_skeleton.find_bone(bone_name)
+	if index < 0:
+		return
+	var base: Quaternion = driver_pose_bases.get(bone_name, Quaternion.IDENTITY)
+	seated_driver_skeleton.set_bone_pose_rotation(index, base * Quaternion.from_euler(authored_euler))
 
 func exit_position() -> Vector3:
 	return global_position + global_transform.basis.x * -1.75 + Vector3.UP * 0.1

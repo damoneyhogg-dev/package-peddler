@@ -18,6 +18,10 @@ var current_vehicle: PackagePeddlerVehicle
 var vehicle_door_point: Marker3D
 var driving := false
 var door_waiting_for_close := false
+var vehicle_transition_active := false
+var vehicle_transition_kind := ""
+var vehicle_transition_cancel_target := ""
+var force_vehicle_transition_visuals := false
 var carried_package: MeshInstance3D
 var placed_package: MeshInstance3D
 var stop_arrivals: Dictionary = {}
@@ -337,6 +341,7 @@ func _build_player() -> void:
 	add_child(player)
 	player.interaction_requested.connect(_on_interaction_requested)
 	player.interaction_target_changed.connect(_on_interaction_target_changed)
+	player.presentation_finished.connect(_on_player_presentation_finished)
 	carried_package = _box_mesh(Vector3(0.62, 0.48, 0.42), Color("9b6b3f"))
 	carried_package.name = "CarriedPackage"
 	carried_package.position = Vector3(0.0, 1.05, -0.48)
@@ -435,6 +440,14 @@ func _set_stop_marker_enabled(marker: Marker3D, enabled: bool) -> void:
 		prompt.visible = enabled
 
 func _unhandled_input(event: InputEvent) -> void:
+	if vehicle_transition_active:
+		if event.is_action_pressed("pause") and not event.is_echo():
+			_resolve_vehicle_transition_for_interruption()
+			_toggle_pause()
+			get_viewport().set_input_as_handled()
+		elif event.is_pressed():
+			get_viewport().set_input_as_handled()
+		return
 	if active_modal != "" and event.is_pressed() and not event.is_echo():
 		_handle_modal_input()
 		get_viewport().set_input_as_handled()
@@ -457,6 +470,8 @@ func _process(_delta: float) -> void:
 		vehicle_door_point.global_position = current_vehicle.door_world_position()
 
 func _toggle_pause() -> void:
+	if vehicle_transition_active:
+		_resolve_vehicle_transition_for_interruption()
 	get_tree().paused = not get_tree().paused
 	pause_label.visible = get_tree().paused
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if get_tree().paused else Input.MOUSE_MODE_CAPTURED
@@ -465,6 +480,9 @@ func _on_interaction_target_changed(target: Node3D) -> void:
 	interaction_label.text = "Press E / A to %s" % String(target.get_meta("interaction_text", "interact")) if is_instance_valid(target) else ""
 
 func _on_interaction_requested(target: Node3D) -> void:
+	if vehicle_transition_active:
+		_show_status("Finish entering or exiting the vehicle before another action.")
+		return
 	match String(target.get_meta("interaction_kind", "")):
 		"driver_select":
 			_open_driver_menu()
@@ -635,12 +653,18 @@ func _choose_driver(index: int) -> void:
 	if not gameplay_state.select_driver(index):
 		return
 	player.set_driver_variant(index)
+	_apply_driver_variant_to_vehicles(index)
 	_save_game()
 	_close_modal("Driver selected: %s. Choose Parcel Finch or Cargo Comet at the vehicle selector." % gameplay_state.selected_driver)
 
 func _apply_saved_driver() -> void:
 	var index := GameplayState.DRIVERS.find(gameplay_state.selected_driver)
 	player.set_driver_variant(maxi(index, 0))
+	_apply_driver_variant_to_vehicles(maxi(index, 0))
+
+func _apply_driver_variant_to_vehicles(index: int) -> void:
+	for vehicle in vehicles:
+		vehicle.set_driver_variant(index)
 
 func _select_runtime_vehicle(index: int) -> void:
 	if vehicles.is_empty():
@@ -774,43 +798,97 @@ func _handle_vehicle_access() -> void:
 	_enter_vehicle()
 
 func _enter_vehicle() -> void:
-	if current_vehicle == null or not current_vehicle.door_open:
+	if vehicle_transition_active or current_vehicle == null or not current_vehicle.door_open:
 		return
-	driving = true
 	door_waiting_for_close = false
-	player.set_player_active(false)
-	current_vehicle.set_driving_active(true)
-	current_vehicle.set_door_open(false)
-	player.begin_vehicle_transition("vehicle_enter", current_vehicle)
-	if gameplay_state.route_phase == "LOADED":
-		var departure := gameplay_state.depart_route()
-		_show_status(departure.message)
-		_save_game()
+	vehicle_transition_active = true
+	vehicle_transition_kind = "vehicle_enter"
+	vehicle_transition_cancel_target = ""
+	current_vehicle.set_driving_active(false)
 	vehicle_door_point.remove_from_group("interactable")
 	interaction_label.text = ""
-	if gameplay_state.route_phase != "DRIVING":
-		_show_status("Driving %s | P / X: Park/Drive | W/S: throttle/brake/reverse | A/D: steer | Space: brake | E/A: exit when parked" % current_vehicle.display_name)
+	_show_status("Entering %s... vehicle controls are locked until seated." % current_vehicle.display_name)
+	if not player.begin_vehicle_transition("vehicle_enter", current_vehicle, force_vehicle_transition_visuals):
+		vehicle_transition_active = false
+		vehicle_transition_kind = ""
+		vehicle_door_point.add_to_group("interactable")
+		_show_status("Could not start vehicle entry.")
 
 func _attempt_vehicle_exit() -> void:
-	if current_vehicle == null:
+	if vehicle_transition_active or current_vehicle == null:
 		return
 	if not current_vehicle.parked or absf(current_vehicle.speed) > 0.1:
 		_show_status("Stop and engage Park before exiting.")
 		return
+	vehicle_transition_active = true
+	vehicle_transition_kind = "vehicle_exit"
+	vehicle_transition_cancel_target = ""
+	current_vehicle.set_driving_active(false)
+	current_vehicle.set_door_open(true)
+	vehicle_door_point.remove_from_group("interactable")
+	interaction_label.text = ""
+	_show_status("Exiting %s... controls are locked until clear of the door." % current_vehicle.display_name)
+	if not player.begin_vehicle_transition("vehicle_exit", current_vehicle, force_vehicle_transition_visuals):
+		vehicle_transition_active = false
+		vehicle_transition_kind = ""
+		_settle_inside_vehicle()
+
+func _on_player_presentation_finished(kind: String) -> void:
+	if not vehicle_transition_active or kind != vehicle_transition_kind:
+		return
+	var cancel_target := vehicle_transition_cancel_target
+	vehicle_transition_active = false
+	vehicle_transition_kind = ""
+	vehicle_transition_cancel_target = ""
+	if cancel_target == "outside":
+		_settle_outside_vehicle(false)
+	elif cancel_target == "inside":
+		_settle_inside_vehicle()
+	elif kind == "vehicle_enter":
+		_settle_inside_vehicle()
+		if gameplay_state.route_phase == "LOADED":
+			var departure := gameplay_state.depart_route()
+			_show_status(departure.message)
+			_save_game()
+		elif gameplay_state.route_phase != "DRIVING":
+			_show_status("Driving %s | P / X: Park/Drive | W/S: throttle/brake/reverse | A/D: steer | Space: brake | E/A: exit when parked" % current_vehicle.display_name)
+	else:
+		_settle_outside_vehicle(true)
+
+func _settle_inside_vehicle() -> void:
+	driving = true
+	door_waiting_for_close = false
+	current_vehicle.set_door_open(false)
+	var driver_index := maxi(GameplayState.DRIVERS.find(gameplay_state.selected_driver), 0)
+	current_vehicle.set_driver_variant(driver_index)
+	player.set_player_active(false)
+	current_vehicle.set_driving_active(true)
+	vehicle_door_point.remove_from_group("interactable")
+	interaction_label.text = ""
+
+func _settle_outside_vehicle(completed_exit: bool) -> void:
 	driving = false
 	current_vehicle.set_driving_active(false)
 	current_vehicle.set_door_open(true)
-	door_waiting_for_close = true
 	player.global_position = current_vehicle.exit_position()
 	player.set_player_active(true)
-	player.begin_vehicle_transition("vehicle_exit", current_vehicle)
+	door_waiting_for_close = completed_exit
 	gameplay_state.vehicle_position = current_vehicle.global_position
 	gameplay_state.vehicle_rotation_y = current_vehicle.rotation.y
-	_save_game()
 	vehicle_door_point.global_position = current_vehicle.door_world_position()
 	vehicle_door_point.add_to_group("interactable")
-	vehicle_door_point.set_meta("interaction_text", "close the %s driver door" % current_vehicle.display_name)
-	_show_status("Exited %s. Press E / A at the door to close it." % current_vehicle.display_name)
+	vehicle_door_point.set_meta("interaction_text", ("close the %s driver door" if completed_exit else "enter %s") % current_vehicle.display_name)
+	if completed_exit:
+		_save_game()
+		_show_status("Exited %s. Press E / A at the door to close it." % current_vehicle.display_name)
+	else:
+		_show_status("Vehicle entry cancelled safely. The door remains open.")
+
+func _resolve_vehicle_transition_for_interruption() -> void:
+	if not vehicle_transition_active:
+		return
+	vehicle_transition_cancel_target = "outside" if vehicle_transition_kind == "vehicle_enter" else "inside"
+	player.cancel_authored_presentation()
 
 func _set_carried_package_visible(visible_value: bool) -> void:
 	if carried_package:
@@ -844,4 +922,11 @@ func _show_status(message: String) -> void:
 	_update_route_hud()
 
 func _save_game() -> bool:
+	if vehicle_transition_active:
+		_show_status("Saving is locked while entering or exiting the vehicle.")
+		return false
 	return gameplay_state.save_game(runtime_save_path)
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and vehicle_transition_active:
+		_resolve_vehicle_transition_for_interruption()
