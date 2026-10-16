@@ -15,6 +15,7 @@ signal presentation_finished(kind: String)
 @export var mouse_sensitivity := 0.0025
 @export var stick_look_speed := 2.2
 @export var interaction_distance := 2.75
+@export_range(0.0, 1.0) var interaction_facing_dot := 0.28
 @export var fall_recovery_height := -5.0
 
 var gravity := 18.0
@@ -242,12 +243,44 @@ func _update_interaction_target() -> void:
 			continue
 		var candidate_3d := candidate as Node3D
 		var distance := global_position.distance_to(candidate_3d.global_position)
-		if distance <= nearest_distance:
+		if distance <= nearest_distance and _can_target_interaction(candidate_3d):
 			nearest = candidate_3d
 			nearest_distance = distance
 	if nearest != current_interaction_target:
 		current_interaction_target = nearest
 		interaction_target_changed.emit(current_interaction_target)
+
+func _can_target_interaction(candidate: Node3D) -> bool:
+	var offset := candidate.global_position - global_position
+	var planar_offset := Vector3(offset.x, 0.0, offset.z)
+	if planar_offset.length_squared() > 0.001:
+		var facing := -visual_root.global_transform.basis.z
+		facing.y = 0.0
+		if facing.normalized().dot(planar_offset.normalized()) < interaction_facing_dot:
+			return false
+	var vehicle: PackagePeddlerVehicle
+	if candidate.has_meta("interaction_vehicle"):
+		vehicle = candidate.get_meta("interaction_vehicle") as PackagePeddlerVehicle
+	if vehicle != null:
+		var local_player := vehicle.to_local(global_position)
+		if local_player.x > -0.15:
+			return false
+	return _has_interaction_line_of_sight(candidate)
+
+func _has_interaction_line_of_sight(candidate: Node3D) -> bool:
+	if not is_inside_tree() or get_world_3d() == null:
+		return true
+	var query := PhysicsRayQueryParameters3D.create(
+		global_position + Vector3.UP * 1.25,
+		candidate.global_position + Vector3.UP * 0.25
+	)
+	query.exclude = [get_rid()]
+	query.collide_with_areas = true
+	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	if hit.is_empty():
+		return true
+	var collider := hit.get("collider") as Node
+	return collider == candidate or (collider != null and candidate.is_ancestor_of(collider))
 
 func _update_movement(delta: float) -> void:
 	var input_2d := Input.get_vector("move_left", "move_right", "move_forward", "move_back")

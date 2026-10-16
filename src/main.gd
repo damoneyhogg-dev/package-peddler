@@ -441,7 +441,10 @@ func _set_stop_marker_enabled(marker: Marker3D, enabled: bool) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if vehicle_transition_active:
-		if event.is_action_pressed("pause") and not event.is_echo():
+		if event.is_action_pressed("menu_cancel") and not event.is_echo():
+			_resolve_vehicle_transition_for_interruption()
+			get_viewport().set_input_as_handled()
+		elif event.is_action_pressed("pause") and not event.is_echo():
 			_resolve_vehicle_transition_for_interruption()
 			_toggle_pause()
 			get_viewport().set_input_as_handled()
@@ -549,7 +552,7 @@ func _open_encounter_menu() -> void:
 	active_modal = "encounter"
 	modal_panel.visible = true
 	player.set_controls_enabled(false)
-	modal_label.text = "CONTESTED ADDRESS\nAnother fictional courier claims this delivery.\n\n[1 / X] De-escalate (+reputation, small delay)\n[2 / Y] Leave (no fight, route delay)\n[3 / A] Non-lethal fight%s\n[4 / B] Toggle combat accessibility: %s\n[Q] Cancel" % ["" if gameplay_state.combat_enabled else " (DISABLED)", "ON" if gameplay_state.combat_enabled else "OFF"]
+	modal_label.text = "CONTESTED ADDRESS\nAnother fictional courier claims this delivery.\n\n[1 / X] De-escalate (+reputation, small delay)\n[2 / Y] Leave (no fight, route delay)\n[3 / A] Non-lethal fight%s\n[4 / R3] Toggle combat accessibility: %s\n[Q / B / Back] Cancel" % ["" if gameplay_state.combat_enabled else " (DISABLED)", "ON" if gameplay_state.combat_enabled else "OFF"]
 
 func _handle_modal_input() -> void:
 	if active_modal == "fight" and Input.is_action_just_pressed("combat_retreat"):
@@ -676,6 +679,7 @@ func _select_runtime_vehicle(index: int) -> void:
 	if vehicle_door_point:
 		vehicle_door_point.global_position = current_vehicle.door_world_position()
 		vehicle_door_point.set_meta("interaction_text", "open the %s driver door" % current_vehicle.display_name)
+		vehicle_door_point.set_meta("interaction_vehicle", current_vehicle)
 	if gameplay_state.vehicle_position.length() > 0.5:
 		current_vehicle.global_position = gameplay_state.vehicle_position
 		current_vehicle.rotation.y = gameplay_state.vehicle_rotation_y
@@ -819,6 +823,9 @@ func _attempt_vehicle_exit() -> void:
 		return
 	if not current_vehicle.parked or absf(current_vehicle.speed) > 0.1:
 		_show_status("Stop and engage Park before exiting.")
+		return
+	if not current_vehicle.has_exit_clearance([player.get_rid()]):
+		_show_status("The driver-side exit is blocked. Move the vehicle to a clear space before exiting.")
 		return
 	vehicle_transition_active = true
 	vehicle_transition_kind = "vehicle_exit"

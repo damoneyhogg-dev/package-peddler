@@ -13,6 +13,10 @@ signal driving_status_changed(message: String)
 @export var service_brake_rate := 15.0
 @export var rolling_drag := 3.0
 @export var steering_rate := 1.65
+@export var camera_mouse_sensitivity := 0.0025
+@export var camera_stick_speed := 1.8
+@export var camera_return_delay := 1.1
+@export var camera_return_speed := 3.2
 
 var speed := 0.0
 var driving_active := false
@@ -20,6 +24,11 @@ var parked := true
 var door_open := false
 var door_pivot: Node3D
 var vehicle_camera: Camera3D
+var vehicle_camera_rig: Node3D
+var vehicle_camera_arm: SpringArm3D
+var vehicle_camera_yaw := 0.0
+var vehicle_camera_pitch := deg_to_rad(-9.0)
+var vehicle_camera_idle_time := 0.0
 var steering_wheel: Node3D
 var center_selector: MeshInstance3D
 var seated_driver: Node3D
@@ -64,17 +73,21 @@ func _build_vehicle() -> void:
 	door.name = "DriverDoor"
 	door.position = Vector3(0.0, 0.0, 0.48)
 	door_pivot.add_child(door)
-	var camera_rig := Node3D.new()
-	camera_rig.name = "VehicleCameraRig"
-	camera_rig.position = Vector3(0.0, 2.15, 0.7)
-	add_child(camera_rig)
+	vehicle_camera_rig = Node3D.new()
+	vehicle_camera_rig.name = "VehicleCameraRig"
+	vehicle_camera_rig.position = Vector3(0.0, 2.15, 0.7)
+	add_child(vehicle_camera_rig)
+	vehicle_camera_arm = SpringArm3D.new()
+	vehicle_camera_arm.name = "VehicleCameraCollisionArm"
+	vehicle_camera_arm.spring_length = 5.8
+	vehicle_camera_arm.margin = 0.16
+	vehicle_camera_rig.add_child(vehicle_camera_arm)
 	vehicle_camera = Camera3D.new()
 	vehicle_camera.name = "VehicleCamera"
-	vehicle_camera.position = Vector3(0.0, 1.25, 5.8)
-	vehicle_camera.rotation_degrees.x = -9.0
 	vehicle_camera.fov = 70.0
 	vehicle_camera.current = false
-	camera_rig.add_child(vehicle_camera)
+	vehicle_camera_arm.add_child(vehicle_camera)
+	_apply_vehicle_camera_orbit()
 	_build_cockpit_presentation()
 
 func _build_cockpit_presentation() -> void:
@@ -209,7 +222,15 @@ func _physics_process(delta: float) -> void:
 	if not driving_active:
 		velocity = Vector3.ZERO
 		return
-	var throttle := Input.get_axis("move_back", "move_forward")
+	_update_vehicle_camera(delta)
+	var keyboard_throttle := Input.get_axis("move_back", "move_forward")
+	var trigger_throttle := Input.get_action_strength("vehicle_throttle")
+	var trigger_brake_reverse := Input.get_action_strength("vehicle_brake_reverse")
+	var throttle := keyboard_throttle
+	if trigger_throttle > absf(throttle):
+		throttle = trigger_throttle
+	if trigger_brake_reverse > 0.05 and trigger_brake_reverse >= trigger_throttle:
+		throttle = -trigger_brake_reverse
 	var steering := Input.get_axis("move_left", "move_right")
 	if parked:
 		throttle = 0.0
@@ -234,6 +255,32 @@ func _physics_process(delta: float) -> void:
 	if get_slide_collision_count() > 0:
 		speed *= 0.35
 
+func _unhandled_input(event: InputEvent) -> void:
+	if not driving_active:
+		return
+	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+		vehicle_camera_yaw = clampf(vehicle_camera_yaw - event.relative.x * camera_mouse_sensitivity, -2.35, 2.35)
+		vehicle_camera_pitch = clampf(vehicle_camera_pitch - event.relative.y * camera_mouse_sensitivity, -0.75, 0.3)
+		vehicle_camera_idle_time = 0.0
+		_apply_vehicle_camera_orbit()
+
+func _update_vehicle_camera(delta: float) -> void:
+	var look := Input.get_vector("look_left", "look_right", "look_up", "look_down")
+	if look.length_squared() > 0.001:
+		vehicle_camera_yaw = clampf(vehicle_camera_yaw - look.x * camera_stick_speed * delta, -2.35, 2.35)
+		vehicle_camera_pitch = clampf(vehicle_camera_pitch - look.y * camera_stick_speed * delta, -0.75, 0.3)
+		vehicle_camera_idle_time = 0.0
+	else:
+		vehicle_camera_idle_time += delta
+		if vehicle_camera_idle_time >= camera_return_delay:
+			vehicle_camera_yaw = lerp_angle(vehicle_camera_yaw, 0.0, 1.0 - exp(-camera_return_speed * delta))
+			vehicle_camera_pitch = lerp_angle(vehicle_camera_pitch, deg_to_rad(-9.0), 1.0 - exp(-camera_return_speed * delta))
+	_apply_vehicle_camera_orbit()
+
+func _apply_vehicle_camera_orbit() -> void:
+	if vehicle_camera_rig:
+		vehicle_camera_rig.rotation = Vector3(vehicle_camera_pitch, vehicle_camera_yaw, 0.0)
+
 func set_door_open(open: bool) -> void:
 	door_open = open
 	driving_status_changed.emit("%s driver door %s." % [display_name, "opened" if door_open else "closed"])
@@ -247,7 +294,25 @@ func set_driving_active(active: bool) -> void:
 		speed = 0.0
 		cancel_driving_presentation()
 	else:
+		vehicle_camera_idle_time = 0.0
 		_apply_seated_driver_pose(0.0, 0.0)
+
+func has_exit_clearance(exclude_rids: Array[RID] = []) -> bool:
+	if not is_inside_tree() or get_world_3d() == null:
+		return true
+	var shape := CapsuleShape3D.new()
+	shape.radius = 0.34
+	shape.height = 1.65
+	var query := PhysicsShapeQueryParameters3D.new()
+	query.shape = shape
+	# Keep the clearance capsule above road/curb surfaces so only obstacles in
+	# the courier's standing volume prevent the exit.
+	query.transform = Transform3D(Basis.IDENTITY, exit_position() + Vector3.UP * 0.98)
+	query.exclude = [get_rid()]
+	query.exclude.append_array(exclude_rids)
+	query.collide_with_bodies = true
+	query.collide_with_areas = true
+	return get_world_3d().direct_space_state.intersect_shape(query, 1).is_empty()
 
 func toggle_park() -> bool:
 	if not parked and absf(speed) > 0.45:

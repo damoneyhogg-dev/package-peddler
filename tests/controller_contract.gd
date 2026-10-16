@@ -1,6 +1,7 @@
 extends SceneTree
 
 const PlayerController = preload("res://src/player_controller.gd")
+const VehicleController = preload("res://src/vehicle_controller.gd")
 
 var failures: Array[String] = []
 
@@ -19,6 +20,14 @@ func _run() -> void:
 	]
 	for action in required_actions:
 		_expect(InputMap.has_action(action), "Missing input action: %s" % action)
+	var cancel_has_b := false
+	var cancel_has_back := false
+	for mapping in InputMap.action_get_events("menu_cancel"):
+		if mapping is InputEventJoypadButton and mapping.button_index == JOY_BUTTON_B:
+			cancel_has_b = true
+		if mapping is InputEventJoypadButton and mapping.button_index == JOY_BUTTON_BACK:
+			cancel_has_back = true
+	_expect(cancel_has_b and cancel_has_back, "Controller cancel is not mapped to both B and Back")
 	var retreat_has_rb := false
 	for mapping in InputMap.action_get_events("combat_retreat"):
 		if mapping is InputEventJoypadButton and mapping.button_index == JOY_BUTTON_RIGHT_SHOULDER:
@@ -54,11 +63,41 @@ func _run() -> void:
 
 	var interaction_point := Marker3D.new()
 	interaction_point.name = "TestInteractionPoint"
-	interaction_point.position = Vector3(0.0, 0.0, 2.0)
+	interaction_point.position = Vector3(0.0, 0.0, -2.0)
 	interaction_point.add_to_group("interactable")
 	root.add_child(interaction_point)
 	player._update_interaction_target()
 	_expect(player.current_interaction_target == interaction_point, "Nearby contextual interaction target was not selected")
+	interaction_point.position = Vector3(0.0, 0.0, 2.0)
+	player._update_interaction_target()
+	_expect(player.current_interaction_target == null, "Interaction target behind the courier passed the facing guard")
+	interaction_point.position = Vector3(0.0, 0.0, -2.0)
+	var sight_blocker := StaticBody3D.new()
+	var blocker_shape := CollisionShape3D.new()
+	var blocker_box := BoxShape3D.new()
+	blocker_box.size = Vector3(1.0, 2.0, 0.25)
+	blocker_shape.shape = blocker_box
+	sight_blocker.add_child(blocker_shape)
+	sight_blocker.position = Vector3(0.0, 1.0, -1.0)
+	root.add_child(sight_blocker)
+	await physics_frame
+	player._update_interaction_target()
+	_expect(player.current_interaction_target == null, "Occluded interaction target passed the line-of-sight guard")
+	sight_blocker.queue_free()
+	await physics_frame
+	var side_vehicle := VehicleController.new() as PackagePeddlerVehicle
+	side_vehicle.position = Vector3(5.0, 0.0, 0.0)
+	root.add_child(side_vehicle)
+	await process_frame
+	interaction_point.set_meta("interaction_vehicle", side_vehicle)
+	interaction_point.global_position = side_vehicle.door_world_position()
+	player.global_position = side_vehicle.global_position + side_vehicle.global_transform.basis.x * 1.8
+	player.visual_root.look_at(interaction_point.global_position, Vector3.UP)
+	_expect(not player._can_target_interaction(interaction_point), "Passenger-side approach passed the driver-door side guard")
+	player.global_position = side_vehicle.global_position + side_vehicle.global_transform.basis.x * -2.1
+	player.visual_root.look_at(interaction_point.global_position, Vector3.UP)
+	_expect(player._can_target_interaction(interaction_point), "Driver-side approach was rejected by interaction guards")
+	interaction_point.remove_meta("interaction_vehicle")
 	player.position = Vector3(10.0, 0.0, 0.0)
 	player._update_interaction_target()
 	_expect(player.current_interaction_target == null, "Out-of-range interaction target remained selected")
@@ -126,7 +165,7 @@ func _run() -> void:
 	_expect(player.velocity.is_zero_approx(), "Fall recovery did not clear player velocity")
 
 	if failures.is_empty():
-		print("CONTROLLER_CONTRACT_PASS actions=%d modal_freeze=true camera_leak_blocked=true partial=%.3f planar=%.3f diagonal=%.3f stopped=%.3f sprint=%.3f recovery=true rigged=true" % [required_actions.size(), partial_speed, planar_speed, diagonal_speed, stopped_speed, measured_sprint_speed])
+		print("CONTROLLER_CONTRACT_PASS actions=%d modal_freeze=true camera_leak_blocked=true interaction_facing=true interaction_los=true driver_side=true partial=%.3f planar=%.3f diagonal=%.3f stopped=%.3f sprint=%.3f recovery=true rigged=true" % [required_actions.size(), partial_speed, planar_speed, diagonal_speed, stopped_speed, measured_sprint_speed])
 		quit(0)
 	else:
 		for failure in failures:
