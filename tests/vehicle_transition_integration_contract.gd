@@ -65,7 +65,10 @@ func _run() -> void:
 	game.door_waiting_for_close = false
 	vehicle.set_door_open(true)
 	game._enter_vehicle()
-	game._resolve_vehicle_transition_for_interruption()
+	var cancel_event := InputEventAction.new()
+	cancel_event.action = "menu_cancel"
+	cancel_event.pressed = true
+	game._unhandled_input(cancel_event)
 	_expect(not game.vehicle_transition_active and not game.driving and game.player.visible and not vehicle.seated_driver.visible, "Interrupted entry did not settle outside")
 	game._enter_vehicle()
 	_advance_transition(game, 1.40)
