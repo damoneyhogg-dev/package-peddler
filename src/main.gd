@@ -512,7 +512,7 @@ func _open_vehicle_menu() -> void:
 	active_modal = "vehicle"
 	modal_panel.visible = true
 	player.set_controls_enabled(false)
-	modal_label.text = "VEHICLE SWAP - currently: %s\n\n[1 / X] Parcel Finch - roomy blue delivery van\n[2 / Y] Cargo Comet - nimble orange compact\n\n[Q / B] Cancel and keep current vehicle" % gameplay_state.selected_vehicle
+	modal_label.text = "VEHICLE SWAP - currently: %s\n\n[1 / X] Parcel Finch - roomy blue delivery van\n[2 / Y] Cargo Comet - nimble orange compact\n\n[Q / B / Back] Cancel and keep current vehicle" % gameplay_state.selected_vehicle
 
 func _open_driver_menu() -> void:
 	active_modal = "driver"
@@ -543,7 +543,7 @@ func _open_animal_menu() -> void:
 	active_modal = "animal"
 	modal_panel.visible = true
 	player.set_controls_enabled(false)
-	modal_label.text = "UNSAFE ANIMAL AT ACTIVE STOP\nRemain at the vehicle; never confront the dog.\n\n[1 / X] Wait for customer to secure it\n[2 / Y] Contact customer\n[3 / A] Mark undeliverable and return package\n[Q] Cancel"
+	modal_label.text = "UNSAFE ANIMAL AT ACTIVE STOP\nRemain at the vehicle; never confront the dog.\n\n[1 / X] Wait for customer to secure it\n[2 / Y] Contact customer\n[3 / A] Mark undeliverable and return package\n[Q / B / Back] Cancel"
 
 func _open_encounter_menu() -> void:
 	if gameplay_state.encounter_resolved:
