@@ -30,6 +30,7 @@ var stop_proof_points: Dictionary = {}
 var route_hud: Label
 var runtime_save_path := GameplayState.SAVE_PATH
 var route_draft_order: Array[String] = []
+var save_warning := ""
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -40,6 +41,7 @@ func _ready() -> void:
 	_build_hud()
 	_apply_saved_driver()
 	_select_runtime_vehicle(GameplayState.VEHICLES.find(gameplay_state.selected_vehicle))
+	_restore_saved_runtime_state()
 	_restore_visible_runtime_state()
 	_show_status("Loaded driver: %s | Vehicle: %s | Credits: %d" % [gameplay_state.selected_driver, gameplay_state.selected_vehicle, gameplay_state.credits])
 	if gameplay_state.route_phase == "NO_ROUTE":
@@ -407,6 +409,37 @@ func _restore_visible_runtime_state() -> void:
 		placed_package.global_position = (stop_delivery_points[gameplay_state.current_stop_id] as Marker3D).global_position + Vector3(0.0, 0.28, 0.0)
 	_update_route_hud()
 
+func _restore_saved_runtime_state() -> void:
+	if current_vehicle == null or player == null:
+		return
+	current_vehicle.parked = gameplay_state.vehicle_parked
+	current_vehicle.speed = 0.0
+	current_vehicle.set_door_open(gameplay_state.vehicle_door_open)
+	vehicle_transition_active = false
+	vehicle_transition_kind = ""
+	vehicle_transition_cancel_target = ""
+	if gameplay_state.runtime_location == "IN_VEHICLE":
+		# Reloads resume at a deterministic endpoint, never midway through an
+		# entry or exit animation.
+		driving = true
+		door_waiting_for_close = false
+		current_vehicle.set_door_open(false)
+		player.set_player_active(false)
+		current_vehicle.set_driving_active(true)
+		vehicle_door_point.remove_from_group("interactable")
+		interaction_label.text = ""
+	else:
+		driving = false
+		door_waiting_for_close = gameplay_state.door_waiting_for_close
+		player.global_position = gameplay_state.player_position
+		player.set_player_active(true)
+		current_vehicle.set_driving_active(false)
+		vehicle_door_point.add_to_group("interactable")
+		var prompt := "open the %s driver door" % current_vehicle.display_name
+		if current_vehicle.door_open:
+			prompt = ("close the %s driver door" if door_waiting_for_close else "enter %s") % current_vehicle.display_name
+		vehicle_door_point.set_meta("interaction_text", prompt)
+
 func _update_route_hud() -> void:
 	if route_hud == null:
 		return
@@ -457,7 +490,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if driving and event.is_pressed() and not event.is_echo():
 		if event.is_action_pressed("vehicle_park"):
-			current_vehicle.toggle_park()
+			if current_vehicle.toggle_park():
+				_save_game()
 			get_viewport().set_input_as_handled()
 			return
 		if event.is_action_pressed("interact"):
@@ -762,11 +796,12 @@ func _handle_stop_proof(target: Marker3D) -> void:
 	var active_stop: Dictionary = gameplay_state.stops[gameplay_state.current_stop_id]
 	var result := gameplay_state.confirm_delivery(String(active_stop.confirmation))
 	placed_package.visible = false
-	_save_game()
+	var saved := _save_game()
 	_update_route_hud()
 	if gameplay_state.route_phase == "ROUTE_COMPLETE":
 		var summary := gameplay_state.earnings_summary()
-		_show_status("%s Route complete | Gross $%d - Fuel $%d - Maintenance $%d - Penalties $%d = Net $%d. Progress saved." % [result.message, summary.gross, summary.fuel, summary.maintenance, summary.penalties, summary.net])
+		var persistence_message := "Progress saved." if saved else "Progress NOT saved; keep the game open and retry."
+		_show_status("%s Route complete | Gross $%d - Fuel $%d - Maintenance $%d - Penalties $%d = Net $%d. %s" % [result.message, summary.gross, summary.fuel, summary.maintenance, summary.penalties, summary.net, persistence_message])
 	else:
 		_show_status("%s Next GPS target: %s" % [result.message, gameplay_state.gps_target_address])
 
@@ -792,6 +827,7 @@ func _handle_vehicle_access() -> void:
 		current_vehicle.set_door_open(false)
 		door_waiting_for_close = false
 		vehicle_door_point.set_meta("interaction_text", "open the %s driver door" % current_vehicle.display_name)
+		_save_game()
 		_show_status("Driver door closed and latched.")
 		return
 	if not current_vehicle.door_open:
@@ -858,7 +894,10 @@ func _on_player_presentation_finished(kind: String) -> void:
 			_show_status(departure.message)
 			_save_game()
 		elif gameplay_state.route_phase != "DRIVING":
+			_save_game()
 			_show_status("Driving %s | P / X: Park/Drive | W/S: throttle/brake/reverse | A/D: steer | Space: brake | E/A: exit when parked" % current_vehicle.display_name)
+		else:
+			_save_game()
 	else:
 		_settle_outside_vehicle(true)
 
@@ -925,15 +964,43 @@ func _close_modal(message: String) -> void:
 
 func _show_status(message: String) -> void:
 	if status_label:
-		status_label.text = message
+		status_label.text = message if save_warning == "" else "%s\nSAVE WARNING: %s" % [message, save_warning]
 	_update_route_hud()
 
 func _save_game() -> bool:
 	if vehicle_transition_active:
 		_show_status("Saving is locked while entering or exiting the vehicle.")
 		return false
-	return gameplay_state.save_game(runtime_save_path)
+	_sync_runtime_state_for_save()
+	var saved := gameplay_state.save_game(runtime_save_path)
+	if saved:
+		save_warning = ""
+	else:
+		save_warning = "Progress could not be written. Do not close the game until saving succeeds."
+		_show_status("Progress was not saved.")
+	return saved
+
+func _sync_runtime_state_for_save() -> void:
+	if current_vehicle == null or player == null:
+		return
+	gameplay_state.vehicle_position = current_vehicle.global_position
+	gameplay_state.vehicle_rotation_y = current_vehicle.rotation.y
+	gameplay_state.vehicle_parked = current_vehicle.parked
+	gameplay_state.vehicle_door_open = current_vehicle.door_open
+	gameplay_state.door_waiting_for_close = door_waiting_for_close
+	if driving:
+		gameplay_state.runtime_location = "IN_VEHICLE"
+		# Keep a safe outside fallback beside the same saved vehicle while normal
+		# reload resumes in the canonical seated state.
+		gameplay_state.player_position = current_vehicle.exit_position()
+		gameplay_state.vehicle_door_open = false
+		gameplay_state.door_waiting_for_close = false
+	else:
+		gameplay_state.runtime_location = "ON_FOOT"
+		gameplay_state.player_position = player.global_position
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and vehicle_transition_active:
 		_resolve_vehicle_transition_for_interruption()
+	if what in [NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_WM_CLOSE_REQUEST] and not vehicle_transition_active:
+		_save_game()

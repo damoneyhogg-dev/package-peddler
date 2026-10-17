@@ -4,7 +4,9 @@ extends RefCounted
 const SAVE_PATH := "user://package_peddler_save.json"
 const VEHICLES := ["Parcel Finch", "Cargo Comet"]
 const DRIVERS := ["Owner Courier", "Maya Brooks", "Jordan Reed", "Alex Rivera"]
-const SCHEMA_VERSION := 5
+const SCHEMA_VERSION := 6
+const DEFAULT_PLAYER_POSITION := Vector3(-11.0, 1.0, -1.0)
+const VALID_RUNTIME_LOCATIONS := ["ON_FOOT", "IN_VEHICLE"]
 const VALID_OUTCOMES := ["deescalated", "left", "win", "loss"]
 const ROUTE_OFFER := {
 	"route_id": "WB-FIVE-01",
@@ -66,6 +68,11 @@ var net_earnings := 0
 var route_start_credits := 0
 var vehicle_position := Vector3.ZERO
 var vehicle_rotation_y := 0.0
+var player_position := DEFAULT_PLAYER_POSITION
+var runtime_location := "ON_FOOT"
+var vehicle_parked := true
+var vehicle_door_open := false
+var door_waiting_for_close := false
 
 func reset_defaults() -> void:
 	selected_vehicle = VEHICLES[0]
@@ -104,6 +111,11 @@ func reset_defaults() -> void:
 	route_start_credits = 0
 	vehicle_position = Vector3.ZERO
 	vehicle_rotation_y = 0.0
+	player_position = DEFAULT_PLAYER_POSITION
+	runtime_location = "ON_FOOT"
+	vehicle_parked = true
+	vehicle_door_open = false
+	door_waiting_for_close = false
 
 func select_vehicle(index: int) -> bool:
 	if index < 0 or index >= VEHICLES.size():
@@ -564,7 +576,12 @@ func to_dictionary() -> Dictionary:
 		"net_earnings": net_earnings,
 		"route_start_credits": route_start_credits,
 		"vehicle_position": [vehicle_position.x, vehicle_position.y, vehicle_position.z],
-		"vehicle_rotation_y": vehicle_rotation_y
+		"vehicle_rotation_y": vehicle_rotation_y,
+		"player_position": [player_position.x, player_position.y, player_position.z],
+		"runtime_location": runtime_location,
+		"vehicle_parked": vehicle_parked,
+		"vehicle_door_open": vehicle_door_open,
+		"door_waiting_for_close": door_waiting_for_close
 	}
 
 func apply_dictionary(data: Dictionary) -> bool:
@@ -589,7 +606,12 @@ func apply_dictionary(data: Dictionary) -> bool:
 		"gps_target_address": TYPE_STRING,
 		"route_bonus_claimed": TYPE_BOOL,
 		"expenses_claimed": TYPE_BOOL,
-		"vehicle_position": TYPE_ARRAY
+		"vehicle_position": TYPE_ARRAY,
+		"player_position": TYPE_ARRAY,
+		"runtime_location": TYPE_STRING,
+		"vehicle_parked": TYPE_BOOL,
+		"vehicle_door_open": TYPE_BOOL,
+		"door_waiting_for_close": TYPE_BOOL
 	}
 	for key in required_types:
 		if not data.has(key) or typeof(data[key]) != required_types[key]:
@@ -640,6 +662,29 @@ func apply_dictionary(data: Dictionary) -> bool:
 		return false
 	vehicle_position = Vector3(float(saved_position[0]), float(saved_position[1]), float(saved_position[2]))
 	vehicle_rotation_y = float(data.vehicle_rotation_y)
+	if not is_finite(vehicle_rotation_y) or absf(vehicle_rotation_y) > 1000.0:
+		reset_defaults()
+		return false
+	var saved_player_position: Array = data.player_position
+	if not _valid_vector_data(saved_player_position):
+		reset_defaults()
+		return false
+	player_position = Vector3(float(saved_player_position[0]), float(saved_player_position[1]), float(saved_player_position[2]))
+	runtime_location = String(data.runtime_location)
+	vehicle_parked = bool(data.vehicle_parked)
+	vehicle_door_open = bool(data.vehicle_door_open)
+	door_waiting_for_close = bool(data.door_waiting_for_close)
+	if runtime_location not in VALID_RUNTIME_LOCATIONS or not _valid_world_position(vehicle_position) or not _valid_world_position(player_position):
+		reset_defaults()
+		return false
+	if runtime_location == "IN_VEHICLE":
+		# A process-level reload resumes at one deterministic endpoint: fully
+		# seated, never midway through an entry/exit animation.
+		vehicle_door_open = false
+		door_waiting_for_close = false
+	elif door_waiting_for_close and not vehicle_door_open:
+		reset_defaults()
+		return false
 	if route_phase not in VALID_ROUTE_PHASES or package_status not in VALID_PACKAGE_STATUSES:
 		reset_defaults()
 		return false
@@ -797,6 +842,12 @@ func _validate_route_records() -> bool:
 func _is_integer_number(value: Variant) -> bool:
 	return (typeof(value) == TYPE_INT or typeof(value) == TYPE_FLOAT) and is_equal_approx(float(value), floor(float(value)))
 
+func _valid_vector_data(value: Array) -> bool:
+	return value.size() == 3 and value.all(func(component): return typeof(component) in [TYPE_INT, TYPE_FLOAT] and is_finite(float(component)))
+
+func _valid_world_position(value: Vector3) -> bool:
+	return value.is_finite() and absf(value.x) <= 10000.0 and absf(value.y) <= 10000.0 and absf(value.z) <= 10000.0
+
 func save_game(path := SAVE_PATH) -> bool:
 	var temp_path: String = path + ".tmp"
 	var backup_path: String = path + ".bak"
@@ -805,6 +856,10 @@ func save_game(path := SAVE_PATH) -> bool:
 		return false
 	file.store_string(JSON.stringify(to_dictionary()))
 	file.flush()
+	if file.get_error() != OK:
+		file.close()
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(temp_path))
+		return false
 	file.close()
 	var absolute_path := ProjectSettings.globalize_path(path)
 	var absolute_temp := ProjectSettings.globalize_path(temp_path)
@@ -824,20 +879,30 @@ func save_game(path := SAVE_PATH) -> bool:
 
 func load_game(path := SAVE_PATH) -> bool:
 	reset_defaults()
+	for candidate in [path, path + ".bak", path + ".tmp"]:
+		var parsed := _read_save_dictionary(candidate)
+		if parsed.is_empty():
+			continue
+		if int(parsed.get("schema_version", -1)) in [2, 3, 4, 5]:
+			parsed = _migrate_legacy_schema(parsed)
+		if apply_dictionary(parsed):
+			if candidate != path:
+				# A valid interrupted-save artifact is promoted back to the primary
+				# path. Failure to promote does not discard the recovered session.
+				save_game(path)
+			return true
+	return false
+
+func _read_save_dictionary(path: String) -> Dictionary:
 	if not FileAccess.file_exists(path):
-		return false
+		return {}
 	var file := FileAccess.open(path, FileAccess.READ)
 	if file == null:
-		return false
+		return {}
 	var json := JSON.new()
-	if json.parse(file.get_as_text()) != OK:
-		return false
-	var parsed = json.data
-	if parsed is not Dictionary:
-		return false
-	if int(parsed.get("schema_version", -1)) in [2, 3, 4]:
-		parsed = _migrate_legacy_schema(parsed)
-	return apply_dictionary(parsed)
+	if json.parse(file.get_as_text()) != OK or json.data is not Dictionary:
+		return {}
+	return (json.data as Dictionary).duplicate(true)
 
 func _migrate_legacy_schema(data: Dictionary) -> Dictionary:
 	var migrated := data.duplicate(true)
@@ -865,4 +930,9 @@ func _migrate_legacy_schema(data: Dictionary) -> Dictionary:
 	migrated.route_start_credits = 0
 	migrated.vehicle_position = [0.0, 0.0, 0.0]
 	migrated.vehicle_rotation_y = 0.0
+	migrated.player_position = [DEFAULT_PLAYER_POSITION.x, DEFAULT_PLAYER_POSITION.y, DEFAULT_PLAYER_POSITION.z]
+	migrated.runtime_location = "ON_FOOT"
+	migrated.vehicle_parked = true
+	migrated.vehicle_door_open = false
+	migrated.door_waiting_for_close = false
 	return migrated
