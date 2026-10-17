@@ -906,7 +906,18 @@ func _read_save_dictionary(path: String) -> Dictionary:
 
 func _migrate_legacy_schema(data: Dictionary) -> Dictionary:
 	var migrated := data.duplicate(true)
+	var source_schema := int(migrated.get("schema_version", -1))
 	migrated.schema_version = SCHEMA_VERSION
+	if source_schema == 5:
+		# Schema 5 already contains the complete five-stop route/economy model.
+		# Preserve it verbatim and add only the runtime continuity fields introduced
+		# by schema 6 so an in-progress route is not silently discarded.
+		migrated.player_position = [DEFAULT_PLAYER_POSITION.x, DEFAULT_PLAYER_POSITION.y, DEFAULT_PLAYER_POSITION.z]
+		migrated.runtime_location = "ON_FOOT"
+		migrated.vehicle_parked = true
+		migrated.vehicle_door_open = false
+		migrated.door_waiting_for_close = false
+		return migrated
 	migrated.route_phase = "NO_ROUTE"
 	migrated.route_id = ""
 	migrated.package_status = "ASSIGNED"

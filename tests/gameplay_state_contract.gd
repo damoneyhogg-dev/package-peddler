@@ -192,6 +192,24 @@ func _test_route_save_guards_and_migration() -> void:
 	_expect(migrated.load_game(TEST_SAVE), "Schema-3 save did not migrate")
 	_expect(migrated.selected_driver == "Maya Brooks" and migrated.credits == 123 and migrated.route_phase == "NO_ROUTE", "Schema migration did not preserve profile/economy safely")
 
+	var schema_five := active.to_dictionary()
+	schema_five.schema_version = 5
+	for runtime_field in ["player_position", "runtime_location", "vehicle_parked", "vehicle_door_open", "door_waiting_for_close"]:
+		schema_five.erase(runtime_field)
+	_write_json(TEST_SAVE, schema_five)
+	var migrated_active := GameplayState.new()
+	_expect(migrated_active.load_game(TEST_SAVE), "Active schema-5 route did not migrate")
+	_expect(migrated_active.route_phase == active.route_phase, "Schema-5 migration lost the active route phase")
+	_expect(migrated_active.route_order == active.route_order and migrated_active.stops.size() == active.stops.size() and migrated_active.packages.size() == active.packages.size(), "Schema-5 migration changed route record membership")
+	for definition in GameplayState.STOP_DEFINITIONS:
+		var stop_id := String(definition.stop_id)
+		var tracking_id := String(definition.tracking_id)
+		_expect(String(migrated_active.stops[stop_id].status) == String(active.stops[stop_id].status) and bool(migrated_active.stops[stop_id].reward_claimed) == bool(active.stops[stop_id].reward_claimed), "Schema-5 migration changed stop progress: %s" % stop_id)
+		_expect(String(migrated_active.packages[tracking_id].status) == String(active.packages[tracking_id].status), "Schema-5 migration changed package progress: %s" % tracking_id)
+	_expect(migrated_active.current_stop_id == active.current_stop_id and migrated_active.gps_target_id == active.gps_target_id, "Schema-5 migration changed GPS progress")
+	_expect(migrated_active.credits == active.credits and migrated_active.gross_earnings == active.gross_earnings and migrated_active.net_earnings == active.net_earnings, "Schema-5 migration changed route economy")
+	_expect(migrated_active.runtime_location == "ON_FOOT" and migrated_active.vehicle_parked, "Schema-5 migration did not supply safe runtime defaults")
+
 func _write_text(path: String, content: String) -> void:
 	var file := FileAccess.open(path, FileAccess.WRITE)
 	file.store_string(content)
