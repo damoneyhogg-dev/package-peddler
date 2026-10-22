@@ -32,6 +32,9 @@ var route_hud: Label
 var runtime_save_path := GameplayState.SAVE_PATH
 var route_draft_order: Array[String] = []
 var save_warning := ""
+var sun_light: DirectionalLight3D
+var day_time_hours := 9.0
+const DAY_CYCLE_SECONDS := 900.0
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -49,6 +52,12 @@ func _ready() -> void:
 		_open_driver_menu()
 	print("PACKAGE_PEDDLER_READY character=rigged drivers=4 vehicle_drive=true doors=true environment=vertical_slice")
 
+func _process(delta: float) -> void:
+	day_time_hours = fmod(day_time_hours + delta * 24.0 / DAY_CYCLE_SECONDS, 24.0)
+	_update_day_night_lighting()
+	if current_vehicle and vehicle_door_point:
+		vehicle_door_point.global_position = current_vehicle.door_world_position()
+
 func _build_lighting() -> void:
 	var environment := WorldEnvironment.new()
 	var env := Environment.new()
@@ -65,18 +74,59 @@ func _build_lighting() -> void:
 	env.ambient_light_color = Color("d6e3ea")
 	env.ambient_light_energy = 0.42
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	env.tonemap_exposure = 1.0
+	env.adjustment_enabled = true
+	env.adjustment_brightness = 1.0
+	env.adjustment_contrast = 1.08
+	env.adjustment_saturation = 1.05
+	# Mobile does not implement SSAO/SSIL; leave them disabled there so the
+	# renderer stays warning-free. Forward+ can enable the full stack later.
+	var renderer_method := String(ProjectSettings.get_setting("rendering/renderer/rendering_method", "mobile"))
+	if renderer_method in ["forward_plus", "gl_compatibility"]:
+		env.ssao_enabled = true
+		env.ssao_radius = 1.5
+		env.ssao_intensity = 1.25
+	if renderer_method == "forward_plus":
+		env.ssil_enabled = true
+		env.ssil_radius = 2.0
+		env.ssil_intensity = 0.35
+	env.glow_enabled = true
+	env.glow_intensity = 0.35
+	env.glow_strength = 0.75
 	env.fog_enabled = true
 	env.fog_light_color = Color("b9cbd0")
 	env.fog_density = 0.0025
 	environment.environment = env
 	add_child(environment)
 
-	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-52.0, -28.0, 0.0)
-	sun.light_color = Color("ffe4b2")
-	sun.light_energy = 0.82
-	sun.shadow_enabled = true
-	add_child(sun)
+	sun_light = DirectionalLight3D.new()
+	sun_light.name = "DayNightSun"
+	sun_light.rotation_degrees = Vector3(-52.0, -28.0, 0.0)
+	sun_light.light_color = Color("ffe4b2")
+	sun_light.light_energy = 0.82
+	sun_light.shadow_enabled = true
+	sun_light.directional_shadow_max_distance = 80.0
+	sun_light.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
+	add_child(sun_light)
+	_update_day_night_lighting()
+
+	var street_probe := ReflectionProbe.new()
+	street_probe.name = "StreetReflectionProbe"
+	street_probe.position = Vector3(0.0, 3.0, 3.5)
+	street_probe.size = Vector3(58.0, 8.0, 22.0)
+	street_probe.origin_offset = Vector3(0.0, -1.0, 0.0)
+	street_probe.box_projection = true
+	street_probe.update_mode = ReflectionProbe.UPDATE_ALWAYS
+	add_child(street_probe)
+
+func _update_day_night_lighting() -> void:
+	if sun_light == null:
+		return
+	var angle := (day_time_hours - 6.0) / 24.0 * TAU
+	var daylight := clampf(sin(angle), 0.08, 1.0)
+	sun_light.rotation_degrees = Vector3(-18.0 - daylight * 52.0, -28.0, 0.0)
+	sun_light.light_energy = lerpf(0.16, 1.0, daylight)
+	sun_light.light_color = Color("9db9e6").lerp(Color("ffe4b2"), daylight)
 
 func _build_neighborhood_vertical_slice() -> void:
 	_add_static_box("Ground", Vector3(0.0, -0.28, 0.0), Vector3(70.0, 0.5, 70.0), Color("56724c"))
@@ -510,10 +560,6 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("pause") and not event.is_echo():
 		_toggle_pause()
 		get_viewport().set_input_as_handled()
-
-func _process(_delta: float) -> void:
-	if current_vehicle and vehicle_door_point:
-		vehicle_door_point.global_position = current_vehicle.door_world_position()
 
 func _toggle_pause() -> void:
 	if vehicle_transition_active:
