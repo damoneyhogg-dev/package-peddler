@@ -224,8 +224,10 @@ func _physics_process(delta: float) -> void:
 		return
 	_update_vehicle_camera(delta)
 	var keyboard_throttle := Input.get_axis("move_back", "move_forward")
-	var trigger_throttle := Input.get_action_strength("vehicle_throttle")
-	var trigger_brake_reverse := Input.get_action_strength("vehicle_brake_reverse")
+	# Windows DualSense drivers expose triggers differently across USB/DS4Windows:
+	# support both the InputMap action and the raw SDL trigger axes.
+	var trigger_throttle := _trigger_strength("vehicle_throttle", 5)
+	var trigger_brake_reverse := _trigger_strength("vehicle_brake_reverse", 4)
 	var throttle := keyboard_throttle
 	if trigger_throttle > absf(throttle):
 		throttle = trigger_throttle
@@ -254,6 +256,16 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	if get_slide_collision_count() > 0:
 		speed *= 0.35
+
+func _trigger_strength(action_name: StringName, axis_index: int) -> float:
+	var strength := Input.get_action_strength(action_name)
+	for device in Input.get_connected_joypads():
+		var raw := Input.get_joy_axis(device, axis_index)
+		# SDL normally reports triggers from -1 (released) to 1 (pressed).
+		# Some mappings report 0..1, which is already valid.
+		var normalized := (raw + 1.0) * 0.5 if raw < 0.0 else raw
+		strength = maxf(strength, clampf(normalized, 0.0, 1.0))
+	return strength
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not driving_active:

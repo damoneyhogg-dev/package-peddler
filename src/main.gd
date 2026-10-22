@@ -7,6 +7,7 @@ const MANUAL_STOP_ORDER := ["WB-02", "WB-01", "WB-03", "WB-04", "WB-05"]
 
 var status_label: Label
 var interaction_label: Label
+var interaction_panel: ColorRect
 var pause_label: Label
 var player: PackagePeddlerPlayer
 var modal_panel: ColorRect
@@ -260,6 +261,8 @@ func _add_interaction_point(point_name: String, position_value: Vector3, action_
 	label.modulate = Color("f4df91")
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	label.no_depth_test = true
+	# Prompts are presented in the fixed HUD, not as scattered world text.
+	label.visible = false
 	point.add_child(label)
 	add_child(point)
 
@@ -372,8 +375,14 @@ func _build_hud() -> void:
 	status_label.text = "WASD / left stick: move   Shift: sprint   Mouse / right stick: camera\nV / Y: camera view   E / A: interact   Esc / Menu: pause"
 	status_label.add_theme_font_size_override("font_size", 15)
 	layer.add_child(status_label)
+	interaction_panel = ColorRect.new()
+	interaction_panel.position = Vector2(18.0, 126.0)
+	interaction_panel.size = Vector2(560.0, 54.0)
+	interaction_panel.color = Color(0.03, 0.05, 0.07, 0.86)
+	layer.add_child(interaction_panel)
 	interaction_label = Label.new()
-	interaction_label.position = Vector2(34.0, 132.0)
+	interaction_label.position = Vector2(34.0, 140.0)
+	interaction_label.size = Vector2(528.0, 34.0)
 	interaction_label.add_theme_font_size_override("font_size", 18)
 	layer.add_child(interaction_label)
 	route_hud = Label.new()
@@ -470,7 +479,7 @@ func _set_stop_marker_enabled(marker: Marker3D, enabled: bool) -> void:
 		marker.remove_from_group("interactable")
 	var prompt := marker.get_node_or_null("WorldPrompt") as Label3D
 	if prompt:
-		prompt.visible = enabled
+		prompt.visible = false
 
 func _unhandled_input(event: InputEvent) -> void:
 	if vehicle_transition_active:
@@ -514,7 +523,7 @@ func _toggle_pause() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if get_tree().paused else Input.MOUSE_MODE_CAPTURED
 
 func _on_interaction_target_changed(target: Node3D) -> void:
-	interaction_label.text = "Press E / A to %s" % String(target.get_meta("interaction_text", "interact")) if is_instance_valid(target) else ""
+	interaction_label.text = "CROSS / E  •  %s" % String(target.get_meta("interaction_text", "interact")) if is_instance_valid(target) else ""
 
 func _on_interaction_requested(target: Node3D) -> void:
 	if vehicle_transition_active:
@@ -546,13 +555,13 @@ func _open_vehicle_menu() -> void:
 	active_modal = "vehicle"
 	modal_panel.visible = true
 	player.set_controls_enabled(false)
-	modal_label.text = "VEHICLE SWAP - currently: %s\n\n[1 / X] Parcel Finch - roomy blue delivery van\n[2 / Y] Cargo Comet - nimble orange compact\n\n[Q / B / Back] Cancel and keep current vehicle" % gameplay_state.selected_vehicle
+	modal_label.text = "VEHICLE SWAP - currently: %s\n\n[1 / □] Parcel Finch - roomy blue delivery van\n[2 / △] Cargo Comet - nimble orange compact\n\n[Q / ○ / Back] Cancel and keep current vehicle" % gameplay_state.selected_vehicle
 
 func _open_driver_menu() -> void:
 	active_modal = "driver"
 	modal_panel.visible = true
 	player.set_controls_enabled(false)
-	modal_label.text = "CHOOSE YOUR COURIER - currently: %s\n\n[1 / X] Owner Courier - fictionalized likeness profile\n[2 / Y] Maya Brooks\n[3 / A] Jordan Reed\n[4 / B] Alex Rivera\n\n[Q] Keep current driver" % gameplay_state.selected_driver
+	modal_label.text = "CHOOSE YOUR COURIER - currently: %s\n\n[1 / □] Owner Courier - fictionalized likeness profile\n[2 / △] Maya Brooks\n[3 / ✕] Jordan Reed\n[4 / R3] Alex Rivera\n\n[Q / ○] Keep current driver" % gameplay_state.selected_driver
 
 func _open_route_menu() -> void:
 	if gameplay_state.route_phase != "NO_ROUTE":
@@ -571,13 +580,13 @@ func _render_route_planner() -> void:
 	for stop_id in route_draft_order:
 		short_order.append(stop_id.trim_prefix("WB-"))
 	var warning := " | BACKTRACKING WARNING" if bool(metrics.backtracking_warning) else " | OPTIMIZED"
-	modal_label.text = "WAREHOUSE ROUTE PLANNER\n%s - %d stops / 5 packages\n%.1f miles | %d minutes | $%d gross%s\nORDER: %s\n\n[1 / X] Accept displayed order\n[2 / Y] Reset optimized\n[3 / A] Move first stop to end (manual reorder)\n[Q] Decline" % [offer.area, offer.stops, metrics.miles, metrics.estimated_minutes, offer.payout, warning, " > ".join(short_order)]
+	modal_label.text = "WAREHOUSE ROUTE PLANNER\n%s - %d stops / 5 packages\n%.1f miles | %d minutes | $%d gross%s\nORDER: %s\n\n[1 / □] Accept displayed order\n[2 / △] Reset optimized\n[3 / ✕] Move first stop to end (manual reorder)\n[Q / ○] Decline" % [offer.area, offer.stops, metrics.miles, metrics.estimated_minutes, offer.payout, warning, " > ".join(short_order)]
 
 func _open_animal_menu() -> void:
 	active_modal = "animal"
 	modal_panel.visible = true
 	player.set_controls_enabled(false)
-	modal_label.text = "UNSAFE ANIMAL AT ACTIVE STOP\nRemain at the vehicle; never confront the dog.\n\n[1 / X] Wait for customer to secure it\n[2 / Y] Contact customer\n[3 / A] Mark undeliverable and return package\n[Q / B / Back] Cancel"
+	modal_label.text = "UNSAFE ANIMAL AT ACTIVE STOP\nRemain at the vehicle; never confront the dog.\n\n[1 / □] Wait for customer to secure it\n[2 / △] Contact customer\n[3 / ✕] Mark undeliverable and return package\n[Q / ○ / Back] Cancel"
 
 func _open_encounter_menu() -> void:
 	if gameplay_state.encounter_resolved:
@@ -586,7 +595,7 @@ func _open_encounter_menu() -> void:
 	active_modal = "encounter"
 	modal_panel.visible = true
 	player.set_controls_enabled(false)
-	modal_label.text = "CONTESTED ADDRESS\nAnother fictional courier claims this delivery.\n\n[1 / X] De-escalate (+reputation, small delay)\n[2 / Y] Leave (no fight, route delay)\n[3 / A] Non-lethal fight%s\n[4 / R3] Toggle combat accessibility: %s\n[Q / B / Back] Cancel" % ["" if gameplay_state.combat_enabled else " (DISABLED)", "ON" if gameplay_state.combat_enabled else "OFF"]
+	modal_label.text = "CONTESTED ADDRESS\nAnother fictional courier claims this delivery.\n\n[1 / □] De-escalate (+reputation, small delay)\n[2 / △] Leave (no fight, route delay)\n[3 / ✕] Non-lethal fight%s\n[4 / R3] Toggle combat accessibility: %s\n[Q / ○ / Back] Cancel" % ["" if gameplay_state.combat_enabled else " (DISABLED)", "ON" if gameplay_state.combat_enabled else "OFF"]
 
 func _handle_modal_input() -> void:
 	if active_modal == "fight" and Input.is_action_just_pressed("combat_retreat"):
@@ -735,7 +744,7 @@ func _handle_package_station() -> void:
 	_update_route_hud()
 	var next_action := " Enter the selected vehicle and depart."
 	if gameplay_state.route_phase == "SCANNING":
-		next_action = " Press E / A again to scan the next package." if gameplay_state.next_unscanned_tracking() != "" else " Press E / A again to load all five packages."
+		next_action = " Press CROSS / E again to scan the next package." if gameplay_state.next_unscanned_tracking() != "" else " Press CROSS / E again to load all five packages."
 	_show_status(result.message + next_action)
 
 func _target_matches_active_stop(target: Marker3D) -> bool:
@@ -822,7 +831,7 @@ func _handle_vehicle_access() -> void:
 				vehicle_door_point.set_meta("interaction_text", "close the %s driver door" % current_vehicle.display_name)
 				var package: Dictionary = gameplay_state.packages[String(gameplay_state.stops[gameplay_state.current_stop_id].tracking_id)]
 				var handling := " Use the dolly/heavy-carry route." if bool(package.heavy_handling_required) else ""
-				_show_status(retrieval.message + handling + " Press E / A again to close the door, then follow the delivery marker.")
+				_show_status(retrieval.message + handling + " Press E / X again to close the door, then follow the delivery marker.")
 				return
 		current_vehicle.set_door_open(false)
 		door_waiting_for_close = false
@@ -833,7 +842,7 @@ func _handle_vehicle_access() -> void:
 	if not current_vehicle.door_open:
 		current_vehicle.set_door_open(true)
 		vehicle_door_point.set_meta("interaction_text", "enter %s" % current_vehicle.display_name)
-		_show_status("Driver door opened. Press E / A again to enter.")
+		_show_status("Driver door opened. Press E / X again to enter.")
 		return
 	_enter_vehicle()
 
@@ -895,7 +904,7 @@ func _on_player_presentation_finished(kind: String) -> void:
 			_save_game()
 		elif gameplay_state.route_phase != "DRIVING":
 			_save_game()
-			_show_status("Driving %s | P / X: Park/Drive | W/S: throttle/brake/reverse | A/D: steer | Space: brake | E/A: exit when parked" % current_vehicle.display_name)
+			_show_status("Driving %s | P / □: Park/Drive | W/S or R2/L2: throttle/reverse | A/D: steer | Space / ○: brake | E / X: exit when parked" % current_vehicle.display_name)
 		else:
 			_save_game()
 	else:
@@ -926,7 +935,7 @@ func _settle_outside_vehicle(completed_exit: bool) -> void:
 	vehicle_door_point.set_meta("interaction_text", ("close the %s driver door" if completed_exit else "enter %s") % current_vehicle.display_name)
 	if completed_exit:
 		_save_game()
-		_show_status("Exited %s. Press E / A at the door to close it." % current_vehicle.display_name)
+		_show_status("Exited %s. Press E / X at the door to close it." % current_vehicle.display_name)
 	else:
 		_show_status("Vehicle entry cancelled safely. The door remains open.")
 

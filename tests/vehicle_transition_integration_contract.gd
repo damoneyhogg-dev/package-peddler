@@ -17,6 +17,20 @@ func _run() -> void:
 	var game := scene.instantiate()
 	root.add_child(game)
 	await process_frame
+	# A contract must be independent of a prior playtest save.
+	game.gameplay_state.reset_defaults()
+	for vehicle in game.vehicles:
+		vehicle.parked = true
+		vehicle.speed = 0.0
+		vehicle.set_door_open(false)
+		vehicle.set_driving_active(false)
+	game._select_runtime_vehicle(0)
+	game.current_vehicle.parked = true
+	game.current_vehicle.set_door_open(false)
+	game.current_vehicle.set_driving_active(false)
+	game.driving = false
+	game.player.set_player_active(true)
+	game.vehicle_door_point.add_to_group("interactable")
 	game.runtime_save_path = "user://package_peddler_vehicle_transition_contract.json"
 	for suffix in ["", ".tmp", ".bak"]:
 		var test_path: String = game.runtime_save_path + suffix
