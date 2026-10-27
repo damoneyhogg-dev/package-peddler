@@ -13,7 +13,7 @@ Date: 2026-10-12
 ## Passed
 
 - Godot editor import/parser: exit 0.
-- Headless main-scene startup: exit 0 and `PACKAGE_PEDDLER_READY character=rigged environment=vertical_slice vehicle_swap=true contested_address=true`.
+- Headless main-scene startup: exit 0 and `PACKAGE_PEDDLER_READY character=rigged drivers=4 vehicle_drive=true doors=true environment=vertical_slice`.
 - Character asset contract: `CHARACTER_ASSET_CONTRACT_PASS rigged=true clips=3`.
 - Controller contract: `CONTROLLER_CONTRACT_PASS actions=13 modal_freeze=true camera_leak_blocked=true partial=1.575 planar=3.600 diagonal=4.200 stopped=0.000 sprint=7.000 recovery=true rigged=true`.
 - Gameplay state contract: `GAMEPLAY_STATE_CONTRACT_PASS drivers=4 vehicles=2 phases=true peaceful=2 combat_actions=4 win_loss_retreat=true persistence=true migration=true nested_tamper_rejected=true economy_tamper_rejected=true idempotent_reward=true`.

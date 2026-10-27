@@ -16,9 +16,11 @@
 - All four drivers share the same gameplay abilities and controls; driver choice persists through save/reload.
 - Player can select among at least six skin tones.
 - Shirt, pants, and high-visibility vest colors are independently selectable.
-- At least three visibly different vest styles are available.
+- Every owner-provided vest reference is available as a fictionalized, unbranded wearable option. The initial catalog includes at least five visibly different silhouettes/material treatments: black utility, short neon zip-mesh, red pocketed utility, long neon mesh with orange/silver reflective bands, and blue/gray zip-front courier.
+- Fictional drivers may be ages 21 through 65 and include slim, average, athletic, dad-bod, and plus-size builds. Age and build must be visible in the final character art without changing gameplay capability.
+- The roster represents a respectful mix of fictional Asian, Caribbean, American, European, and other backgrounds through varied faces, skin tones, hair, names, and styling. Background is identity/presentation only and must not drive stereotypes, stats, pay, combat ability, or route assignment.
 - Appearance persists through save/reload and is visible in third-person and cinematics.
-- Color choices do not alter hitboxes, movement speed, delivery payout, or combat advantage.
+- Age, body build, background, vest, and color choices do not alter hitboxes, movement speed, delivery payout, or combat advantage.
 
 ## Vehicle
 
@@ -37,7 +39,7 @@
 - **Five-stop state foundation complete:** the Willowbrook route owns five separate package/stop records. Every unique package must be scanned exactly once, then all five load before departure. Wrong, duplicate, and out-of-order actions are rejected by the domain state machine.
 - Route cannot start until accepted packages are scanned and loaded.
 - Each fictional package has one tracking ID, stop, dimensions, weight, and status.
-- Capacity and package placement are enforced.
+- Package identity, status, stop ownership, and placement/proof rules are enforced. Vehicle cargo capacity is metadata-only and remains pending.
 - Duplicate scans and wrong-package scans are rejected.
 
 ## Route planning
@@ -47,11 +49,11 @@
 ## Deliveries
 
 - **Five-stop compact scene complete:** the guarded route advances physically separate residential porch, apartment/correct-unit stair approach, restaurant public lobby/signature counter, oversized safe-placement/dolly cue, and unsafe-animal yard. Fifteen identity-bound arrival/delivery/proof markers reject wrong stops; the apartment approach and restaurant access pass automated CharacterBody traversal. Final art and rich interaction animation/UI remain future work.
-- Five distinct locations are reachable by driving and walking.
+- Five distinct compact-scene locations and parking clearances pass automated traversal contracts; a continuous owner driving/walking playthrough remains required.
 - At least one apartment stop requires legal parking, correct building and unit identification, exterior stair traversal while carrying the assigned package, and confirmation at the correct door.
 - At least one commercial restaurant stop requires legal parking, entry through the public lobby, a staff-counter handoff, and signature or equivalent confirmation; staff-only areas remain inaccessible.
 - Correct package, address, placement, scan, and confirmation are required.
-- At least one oversized-package stop requires an appropriate heavy-carry or dolly interaction and rejects placement that blocks an outward-opening door, walkway, or resident access.
+- The oversized stop rejects the wrong placement context and includes a static dolly/safe-zone cue. Animated heavy carry, actual dolly operation, and movement penalties remain pending.
 - An unsafe-animal complication supports staying in or returning to the vehicle, contacting the fictional customer, waiting for the animal to be secured, or marking the stop undeliverable; the player cannot confront or harm the animal.
 - Stops cannot pay twice.
 - Undeliverable status creates a return obligation.

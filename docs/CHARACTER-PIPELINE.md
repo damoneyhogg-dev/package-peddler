@@ -67,5 +67,7 @@ A normal video provides changing 2D projections, not a clean 3D mesh, skeleton, 
 
 - A 13.8-second warehouse video provides clear full-body front and back views, a walking approach, black shirt, denim shorts, black shoes, and a black high-visibility utility vest with fluorescent reflective trim.
 - A private clothing photo adds two distinct vest references: a neon-yellow zippered mesh safety vest with horizontal reflective bands and utility pockets, and a red courier utility vest with broader reflective panels and a heavier pocketed silhouette. Use fictionalized, unbranded versions as visible customization options.
+- A later private clothing photo adds a long neon mesh vest with orange/silver reflective bands and a blue/gray zip-front courier vest with broad silver panels. Both are approved only as fictionalized, unbranded silhouette/material references.
+- Driver art must support ages 21-65 and slim, average, athletic, dad-bod, and plus-size builds across a respectful mix of fictional Asian, Caribbean, American, European, and other backgrounds. These are presentation choices with identical gameplay capability.
 - This materially improves body proportion, clothing, vest, and gait reference.
 - It still does not replace the clean mesh, skeleton, skin weights, or animation clips required for gameplay.

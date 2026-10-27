@@ -9,7 +9,7 @@ Useful fictionalized details:
 - Community pool/clubhouse landmark viewed across a grassy slope, with fencing, deck seating, a small service building, utility poles, and mature trees.
 - Developing-subdivision junction with rough shoulder transitions, overhead utilities, mixed older/new housing, and construction marketing. All real street names, company branding, URLs, and phone numbers must be replaced.
 - Rural-to-town transition with a 35-mph speed change. The town name and sign design must be original.
-- Two vest silhouettes: neon mesh zip-front safety vest and red pocketed courier vest with reflective bands. Remove all marks and create original geometry/materials.
+- Vest references now cover five fictionalized wearable directions: black utility, short neon zip-mesh, red pocketed utility, long neon mesh with orange/silver reflective bands, and blue/gray zip-front courier. Remove all marks and create original geometry/materials; never ship the source photos.
 - Oversized package at a narrow porch. Placement gameplay must preserve door swing, walkway clearance, and resident access; remove package branding and label data.
 - Neighborhood vehicle-scale reference. Do not reproduce identifiable vehicle designs or plates.
 - Property maintenance/security carts near a clubhouse/apartment area as slow ambient traffic or curb obstructions.
