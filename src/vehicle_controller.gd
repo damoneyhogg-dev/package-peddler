@@ -17,6 +17,9 @@ signal driving_status_changed(message: String)
 @export var camera_stick_speed := 1.8
 @export var camera_return_delay := 1.1
 @export var camera_return_speed := 3.2
+@export var camera_base_fov := 70.0
+@export var camera_speed_fov_gain := 10.0
+@export var camera_max_fov := 82.0
 
 var speed := 0.0
 var driving_active := false
@@ -221,6 +224,7 @@ func _physics_process(delta: float) -> void:
 	_update_driving_presentation(delta)
 	if not driving_active:
 		velocity = Vector3.ZERO
+		_update_vehicle_camera_presentation(delta)
 		return
 	_update_vehicle_camera(delta)
 	var keyboard_throttle := Input.get_axis("move_back", "move_forward")
@@ -256,6 +260,7 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	if get_slide_collision_count() > 0:
 		speed *= 0.35
+	_update_vehicle_camera_presentation(delta)
 
 func _trigger_strength(action_name: StringName, axis_index: int) -> float:
 	var strength := Input.get_action_strength(action_name)
@@ -288,6 +293,14 @@ func _update_vehicle_camera(delta: float) -> void:
 			vehicle_camera_yaw = lerp_angle(vehicle_camera_yaw, 0.0, 1.0 - exp(-camera_return_speed * delta))
 			vehicle_camera_pitch = lerp_angle(vehicle_camera_pitch, deg_to_rad(-9.0), 1.0 - exp(-camera_return_speed * delta))
 	_apply_vehicle_camera_orbit()
+
+# Widen the chase-camera view as the delivery van gains speed.
+func _update_vehicle_camera_presentation(delta: float) -> void:
+	if vehicle_camera == null:
+		return
+	var speed_ratio := clampf(absf(speed) / maxf(maximum_forward_speed, 0.01), 0.0, 1.0)
+	var target_fov := clampf(camera_base_fov + speed_ratio * camera_speed_fov_gain, camera_base_fov, camera_max_fov)
+	vehicle_camera.fov = lerpf(vehicle_camera.fov, target_fov, 1.0 - exp(-6.0 * delta))
 
 func _apply_vehicle_camera_orbit() -> void:
 	if vehicle_camera_rig:

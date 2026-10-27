@@ -17,6 +17,9 @@ signal presentation_finished(kind: String)
 @export var interaction_distance := 2.75
 @export_range(0.0, 1.0) var interaction_facing_dot := 0.28
 @export var fall_recovery_height := -5.0
+@export var camera_base_fov := 72.0
+@export var camera_speed_fov_gain := 5.0
+@export var camera_max_fov := 80.0
 
 var gravity := 18.0
 var camera_yaw := 0.0
@@ -191,6 +194,7 @@ func _physics_process(delta: float) -> void:
 	_update_authored_presentation(delta)
 	if not controls_enabled:
 		velocity = Vector3.ZERO
+		_update_camera_presentation(delta)
 		if presentation_kind not in ["vehicle_enter", "vehicle_exit"]:
 			_update_gait(delta)
 		return
@@ -199,6 +203,7 @@ func _physics_process(delta: float) -> void:
 	_update_interaction_target()
 	_update_interaction()
 	_update_movement(delta)
+	_update_camera_presentation(delta)
 	_update_gait(delta)
 	_apply_carry_pose_if_needed()
 
@@ -208,6 +213,15 @@ func _update_gamepad_look(delta: float) -> void:
 		camera_yaw -= look.x * stick_look_speed * delta
 		camera_pitch = clamp(camera_pitch - look.y * stick_look_speed * delta, -1.05, 0.55)
 		_apply_camera_rotation()
+
+# Widen the chase-camera view smoothly during sprinting and route traversal.
+func _update_camera_presentation(delta: float) -> void:
+	if camera == null:
+		return
+	var planar_speed := Vector2(velocity.x, velocity.z).length()
+	var speed_ratio := clampf(planar_speed / maxf(sprint_speed, 0.01), 0.0, 1.0)
+	var target_fov := clampf(camera_base_fov + speed_ratio * camera_speed_fov_gain, camera_base_fov, camera_max_fov)
+	camera.fov = lerpf(camera.fov, target_fov, 1.0 - exp(-7.0 * delta))
 
 func _apply_camera_rotation() -> void:
 	if camera_pivot:
