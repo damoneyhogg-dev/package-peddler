@@ -16,7 +16,7 @@ func _run() -> void:
 	var required_actions := [
 		"move_left", "move_right", "move_forward", "move_back",
 		"look_left", "look_right", "look_up", "look_down",
-		"sprint", "interact", "camera_toggle", "pause", "combat_retreat"
+		"sprint", "jump", "interact", "camera_toggle", "pause", "combat_retreat"
 	]
 	for action in required_actions:
 		_expect(InputMap.has_action(action), "Missing input action: %s" % action)

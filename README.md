@@ -29,6 +29,7 @@ Open `project.godot` in Godot 4.7.2 and run the project.
 ## Controls
 
 - WASD / left stick: move
+- Space / controller Circle: jump on foot; jump is disabled while driving
 - Shift / left-stick press: sprint
 - Mouse / right stick: camera
 - V / controller Y: camera view

@@ -20,6 +20,7 @@ signal presentation_finished(kind: String)
 @export var camera_base_fov := 72.0
 @export var camera_speed_fov_gain := 5.0
 @export var camera_max_fov := 80.0
+@export var jump_velocity := 6.2
 
 var gravity := 18.0
 var camera_yaw := 0.0
@@ -312,7 +313,10 @@ func _update_movement(delta: float) -> void:
 	var rate := acceleration if direction.length_squared() > 0.0 else braking
 	velocity.x = move_toward(velocity.x, target_velocity.x, rate * delta)
 	velocity.z = move_toward(velocity.z, target_velocity.z, rate * delta)
-	if not is_on_floor():
+	if Input.is_action_just_pressed("jump") and is_on_floor():
+		velocity.y = jump_velocity
+		_play_animation("Run")
+	elif not is_on_floor():
 		velocity.y -= gravity * delta
 	else:
 		velocity.y = -0.5
