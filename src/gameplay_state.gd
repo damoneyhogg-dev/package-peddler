@@ -11,9 +11,13 @@ const VALID_OUTCOMES := ["deescalated", "left", "win", "loss"]
 const ROUTE_OFFER := {
 	"route_id": "WB-FIVE-01",
 	"area": "Willowbrook Commons",
+	"base_pay": 475,
 	"payout": 475,
 	"miles": 11.8,
 	"estimated_minutes": 74,
+	"time_limit_minutes": 105,
+	"difficulty": "Moderate",
+	"package_types": ["small", "medium", "oversized"],
 	"stops": 5
 }
 const PACKAGE_TRACKING := "PP-1047-ONE"

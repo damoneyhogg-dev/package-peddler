@@ -626,7 +626,10 @@ func _render_route_planner() -> void:
 	for stop_id in route_draft_order:
 		short_order.append(stop_id.trim_prefix("WB-"))
 	var warning := " | BACKTRACKING WARNING" if bool(metrics.backtracking_warning) else " | OPTIMIZED"
-	modal_label.text = "WAREHOUSE ROUTE PLANNER\n%s - %d stops / 5 packages\n%.1f miles | %d minutes | $%d gross%s\nORDER: %s\n\n[1 / □] Accept displayed order\n[2 / △] Reset optimized\n[3 / ✕] Move first stop to end (manual reorder)\n[Q / ○] Decline" % [offer.area, offer.stops, metrics.miles, metrics.estimated_minutes, offer.payout, warning, " > ".join(short_order)]
+	var package_types: Array[String] = []
+	for package_type in offer.package_types:
+		package_types.append(String(package_type).capitalize())
+	modal_label.text = "WAREHOUSE ROUTE PLANNER\n%s\n%d stops / %d packages | %.1f miles | %d min estimate\nTIME LIMIT: %d min | DIFFICULTY: %s\nPACKAGE TYPES: %s\nBASE PAY: $%d gross%s\nORDER: %s\n\n[1 / □] Accept displayed order\n[2 / △] Reset optimized\n[3 / ✕] Move first stop to end (manual reorder)\n[Q / ○] Decline" % [offer.area, offer.stops, offer.stops, metrics.miles, metrics.estimated_minutes, offer.time_limit_minutes, offer.difficulty, ", ".join(package_types), offer.base_pay, warning, " > ".join(short_order)]
 
 func _open_animal_menu() -> void:
 	active_modal = "animal"
