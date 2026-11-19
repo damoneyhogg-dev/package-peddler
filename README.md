@@ -20,7 +20,7 @@ The current milestone includes:
 - a route planner that shows distance, stop count, package types, estimated time, time limit, difficulty, and base pay before acceptance;
 - a compact fictionalized 3D route with a residential porch, apartment stair approach/unit, restaurant public lobby/counter, oversized safe-placement stop, unsafe-animal yard, warehouse, roads, vehicles, and street details.
 
-The rigged human and neighborhood are functional vertical-slice art, not final likeness-quality or release-quality art. Vehicle access proves door, enter/exit, throttle, braking, steering, and parking state. Five physically separate destinations and the route/economy loop are now wired, but the GPS is a text HUD, the signature/photo proof actions are prompts rather than rich interfaces, the dolly is a static interaction cue, and the dog is a static safety cue. Vehicle suspension, wheel animation, damage, traffic, full-body entry/exit and package-handling animation remain under development.
+The rigged human and neighborhood are functional vertical-slice art, not final likeness-quality or release-quality art. Vehicle access proves door, enter/exit, throttle, braking, steering, and parking state. Five physically separate destinations and the route/economy loop are now wired, but the GPS is a text HUD, the signature/photo proof actions are prompts rather than rich interfaces, the dolly is a static interaction cue, and the dog is a static safety cue. Lightweight non-colliding ambient traffic now loops on the connected roads; vehicle suspension, wheel animation, damage, full-body entry/exit and package-handling animation remain under development.
 
 ## Run
 

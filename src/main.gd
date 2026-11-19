@@ -3,6 +3,7 @@ extends Node3D
 const PlayerController = preload("res://src/player_controller.gd")
 const GameplayState = preload("res://src/gameplay_state.gd")
 const VehicleController = preload("res://src/vehicle_controller.gd")
+const TrafficVehicle = preload("res://src/traffic_vehicle.gd")
 const MANUAL_STOP_ORDER := ["WB-02", "WB-01", "WB-03", "WB-04", "WB-05"]
 
 var status_label: Label
@@ -145,6 +146,7 @@ func _build_neighborhood_vertical_slice() -> void:
 	_build_second_vehicle()
 	_build_rival_courier()
 	_build_street_details()
+	_build_traffic()
 	_build_five_stop_destinations()
 	_add_static_box("LoadingDock", Vector3(13.0, 0.45, -8.8), Vector3(12.0, 0.9, 2.0), Color("4d555b"))
 	_add_interaction_point("DriverKiosk", Vector3(-11.0, 1.0, -3.2), "choose a courier")
@@ -219,6 +221,20 @@ func _build_street_details() -> void:
 	for mailbox_x in [-18.0, -8.0, 4.0, 22.0]:
 		_add_mesh_box("MailboxPost", Vector3(mailbox_x, 0.55, -2.0), Vector3(0.12, 1.1, 0.12), Color("564b40"))
 		_add_mesh_box("Mailbox", Vector3(mailbox_x, 1.15, -2.0), Vector3(0.65, 0.48, 0.4), Color("30383d"))
+
+func _build_traffic() -> void:
+	var loops := [
+		[Vector3(-27.0, 0.0, 3.6), Vector3(27.0, 0.0, 3.6), Vector3(27.0, 0.0, 22.0), Vector3(-27.0, 0.0, 22.0)],
+		[Vector3(20.0, 0.0, -23.0), Vector3(20.0, 0.0, 28.0), Vector3(-23.0, 0.0, 28.0), Vector3(-23.0, 0.0, -23.0)],
+		[Vector3(27.0, 0.0, 22.0), Vector3(-27.0, 0.0, 22.0), Vector3(-27.0, 0.0, 3.6), Vector3(27.0, 0.0, 3.6)]
+	]
+	var colors := [Color("6b88a8"), Color("c17b45"), Color("8c9b70")]
+	for index in range(loops.size()):
+		var traffic := TrafficVehicle.new()
+		traffic.name = "AmbientTraffic_%d" % index
+		traffic.add_to_group("traffic")
+		traffic.configure(loops[index], colors[index], 2.4 + float(index) * 0.55)
+		add_child(traffic)
 
 func _build_five_stop_destinations() -> void:
 	# Compact fictional route assembled from generalized private-reference cues;

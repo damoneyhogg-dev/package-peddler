@@ -33,6 +33,7 @@
 - A fictional gas station supports parking at a pump, exiting, purchasing a selected fuel amount, enforcing tank capacity, and recording the expense exactly once.
 - A fictional vehicle-service center supports confirmed oil, tire, inspection, and optional wash services with explicit cost and elapsed time; completed service state persists and cannot be charged twice.
 - Fuel, damage, maintenance, and cargo capacity affect route economics.
+- Three lightweight, non-colliding ambient vehicles loop on connected road paths. **Automated traffic contract passed.** Collision-aware traffic, lane rules, intersections, and traffic audio remain future work.
 
 ## Warehouse and packages
 
