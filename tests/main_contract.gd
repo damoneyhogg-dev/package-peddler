@@ -37,6 +37,8 @@ func _run() -> void:
 
 	_expect(game.pause_label is Label, "Pause notice was not created")
 	_expect(not game.pause_label.visible, "Pause notice starts visible")
+	_expect("MISSION 01: FIRST RUN" in game.route_hud.text, "Mission progression HUD is missing")
+	_expect("CAREER TIER 1" in game.route_hud.text, "Career tier HUD is missing")
 	game._toggle_pause()
 	_expect(paused, "Pause action did not pause the scene tree")
 	_expect(game.pause_label.visible, "Pause action did not show the pause notice")

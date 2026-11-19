@@ -518,8 +518,9 @@ func _restore_saved_runtime_state() -> void:
 func _update_route_hud() -> void:
 	if route_hud == null:
 		return
+	var career := _career_progression_text()
 	if gameplay_state.route_phase == "NO_ROUTE":
-		route_hud.text = "NO ACTIVE ROUTE\nVisit the warehouse terminal"
+		route_hud.text = "%s\nMISSION 01: FIRST RUN\nAccept a route at the warehouse terminal" % career
 		_refresh_stop_markers()
 		return
 	var completed := 0
@@ -529,8 +530,26 @@ func _update_route_hud() -> void:
 	var target := gameplay_state.gps_target_address
 	if gameplay_state.route_phase == "RETURN_PENDING":
 		target = "Willowbrook Distribution Warehouse"
-	route_hud.text = "ROUTE %s | %d/5 settled\nPHASE: %s\nGPS: %s" % [gameplay_state.route_id, completed, gameplay_state.route_phase, target]
+	var mission := "Complete the Willowbrook route"
+	if gameplay_state.route_phase == "ROUTE_COMPLETE":
+		mission = "Route complete — collect your pay and unlock the next district"
+	route_hud.text = "%s\nMISSION 01: FIRST RUN | %d/5 settled\n%s\nPHASE: %s\nGPS: %s" % [career, completed, mission, gameplay_state.route_phase, target]
 	_refresh_stop_markers()
+
+func _career_progression_text() -> String:
+	var score := maxi(0, gameplay_state.credits) + maxi(0, gameplay_state.reputation) * 50
+	var tier := 1
+	var next_unlock := "Residential routes"
+	if score >= 500:
+		tier = 2
+		next_unlock = "Shopping district routes"
+	if score >= 1500:
+		tier = 3
+		next_unlock = "Industrial district routes"
+	if score >= 3000:
+		tier = 4
+		next_unlock = "Regional cargo hub"
+	return "CAREER TIER %d | CASH $%d | REP %d | NEXT: %s" % [tier, gameplay_state.credits, gameplay_state.reputation, next_unlock]
 
 func _refresh_stop_markers() -> void:
 	for stop_id in stop_arrivals:
