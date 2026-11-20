@@ -30,6 +30,7 @@ var stop_arrivals: Dictionary = {}
 var stop_delivery_points: Dictionary = {}
 var stop_proof_points: Dictionary = {}
 var route_hud: Label
+var touch_controls: Control
 var runtime_save_path := GameplayState.SAVE_PATH
 var route_draft_order: Array[String] = []
 var save_warning := ""
@@ -425,6 +426,7 @@ func _build_player() -> void:
 
 func _build_hud() -> void:
 	var layer := CanvasLayer.new()
+	layer.name = "HUD"
 	add_child(layer)
 	var panel := ColorRect.new()
 	panel.position = Vector2(18.0, 18.0)
@@ -469,6 +471,7 @@ func _build_hud() -> void:
 	modal_panel.color = Color(0.025, 0.035, 0.05, 0.96)
 	modal_panel.visible = false
 	layer.add_child(modal_panel)
+	_build_touch_controls(layer)
 	modal_label = Label.new()
 	modal_label.position = Vector2(28.0, 24.0)
 	modal_label.size = Vector2(544.0, 252.0)
@@ -476,6 +479,40 @@ func _build_hud() -> void:
 	modal_label.add_theme_font_size_override("font_size", 19)
 	modal_panel.add_child(modal_label)
 	_update_route_hud()
+
+func _build_touch_controls(layer: CanvasLayer) -> void:
+	touch_controls = Control.new()
+	touch_controls.name = "TouchControls"
+	touch_controls.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	touch_controls.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	touch_controls.visible = DisplayServer.is_touchscreen_available()
+	layer.add_child(touch_controls)
+	_add_touch_button("TouchMoveLeft", "◀", "move_left", Vector2(24.0, 590.0), Vector2(64.0, 64.0))
+	_add_touch_button("TouchMoveRight", "▶", "move_right", Vector2(168.0, 590.0), Vector2(64.0, 64.0))
+	_add_touch_button("TouchMoveForward", "▲", "move_forward", Vector2(96.0, 522.0), Vector2(64.0, 64.0))
+	_add_touch_button("TouchMoveBack", "▼", "move_back", Vector2(96.0, 658.0), Vector2(64.0, 48.0))
+	_add_touch_button("TouchJump", "JUMP", "jump", Vector2(1080.0, 560.0), Vector2(88.0, 56.0))
+	_add_touch_button("TouchSprint", "RUN", "sprint", Vector2(1176.0, 560.0), Vector2(80.0, 56.0))
+	_add_touch_button("TouchInteract", "USE", "interact", Vector2(1080.0, 628.0), Vector2(176.0, 56.0))
+
+func _add_touch_button(button_name: String, label_text: String, action_name: String, button_position: Vector2, button_size: Vector2) -> void:
+	var button := Button.new()
+	button.name = button_name
+	button.text = label_text
+	button.position = button_position
+	button.size = button_size
+	button.focus_mode = Control.FOCUS_NONE
+	button.modulate = Color(1.0, 1.0, 1.0, 0.78)
+	button.set_meta("input_action", action_name)
+	button.button_down.connect(_touch_action_down.bind(action_name))
+	button.button_up.connect(_touch_action_up.bind(action_name))
+	touch_controls.add_child(button)
+
+func _touch_action_down(action_name: String) -> void:
+	Input.action_press(action_name)
+
+func _touch_action_up(action_name: String) -> void:
+	Input.action_release(action_name)
 
 func _restore_visible_runtime_state() -> void:
 	_set_carried_package_visible(gameplay_state.route_phase == "PACKAGE_RETRIEVED")

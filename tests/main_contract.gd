@@ -39,6 +39,10 @@ func _run() -> void:
 	_expect(not game.pause_label.visible, "Pause notice starts visible")
 	_expect("MISSION 01: FIRST RUN" in game.route_hud.text, "Mission progression HUD is missing")
 	_expect("CAREER TIER 1" in game.route_hud.text, "Career tier HUD is missing")
+	var touch_controls := game.get_node_or_null("HUD/TouchControls")
+	_expect(touch_controls is Control, "Touch controls root is missing")
+	for button_name in ["TouchMoveLeft", "TouchMoveRight", "TouchMoveForward", "TouchMoveBack", "TouchJump", "TouchSprint", "TouchInteract"]:
+		_expect(touch_controls.get_node_or_null(button_name) is Button, "Touch control missing: %s" % button_name)
 	game._toggle_pause()
 	_expect(paused, "Pause action did not pause the scene tree")
 	_expect(game.pause_label.visible, "Pause action did not show the pause notice")
